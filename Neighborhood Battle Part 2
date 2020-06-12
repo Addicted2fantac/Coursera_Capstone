@@ -1,0 +1,3361 @@
+Capstone Project- The battle of Neighborhoods¶
+Cousera Final Capstone Project
+Code Notebook
+Collection of Data
+In [1]:
+# lets import all the required libraries
+import os # Operating System
+import numpy as np
+import pandas as pd
+import datetime as dt # Datetime
+import json # library to handle JSON files
+
+!conda install -c conda-forge geopy --yes
+from geopy.geocoders import Nominatim # convert an address into latitude and longitude values
+
+import requests # library to handle requests
+from pandas.io.json import json_normalize # tranform JSON file into a pandas dataframe
+
+# Matplotlib and associated plotting modules
+import matplotlib.cm as cm
+import matplotlib.colors as colors
+
+!conda install -c conda-forge folium=0.5.0 --yes
+import folium #import folium # map rendering library
+
+print('Libraries imported.')
+Solving environment: done
+
+## Package Plan ##
+
+  environment location: /opt/conda/envs/Python36
+
+  added / updated specs: 
+    - geopy
+
+
+The following packages will be downloaded:
+
+    package                    |            build
+    ---------------------------|-----------------
+    geographiclib-1.50         |             py_0          34 KB  conda-forge
+    ca-certificates-2020.4.5.2 |       hecda079_0         147 KB  conda-forge
+    certifi-2020.4.5.2         |   py36h9f0ad1d_0         152 KB  conda-forge
+    geopy-1.22.0               |     pyh9f0ad1d_0          63 KB  conda-forge
+    python_abi-3.6             |          1_cp36m           4 KB  conda-forge
+    openssl-1.1.1g             |       h516909a_0         2.1 MB  conda-forge
+    ------------------------------------------------------------
+                                           Total:         2.5 MB
+
+The following NEW packages will be INSTALLED:
+
+    geographiclib:   1.50-py_0           conda-forge
+    geopy:           1.22.0-pyh9f0ad1d_0 conda-forge
+    python_abi:      3.6-1_cp36m         conda-forge
+
+The following packages will be UPDATED:
+
+    ca-certificates: 2020.1.1-0                      --> 2020.4.5.2-hecda079_0     conda-forge
+    certifi:         2020.4.5.1-py36_0               --> 2020.4.5.2-py36h9f0ad1d_0 conda-forge
+    openssl:         1.1.1g-h7b6447c_0               --> 1.1.1g-h516909a_0         conda-forge
+
+
+Downloading and Extracting Packages
+geographiclib-1.50   | 34 KB     | ##################################### | 100% 
+ca-certificates-2020 | 147 KB    | ##################################### | 100% 
+certifi-2020.4.5.2   | 152 KB    | ##################################### | 100% 
+geopy-1.22.0         | 63 KB     | ##################################### | 100% 
+python_abi-3.6       | 4 KB      | ##################################### | 100% 
+openssl-1.1.1g       | 2.1 MB    | ##################################### | 100% 
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+Solving environment: done
+
+## Package Plan ##
+
+  environment location: /opt/conda/envs/Python36
+
+  added / updated specs: 
+    - folium=0.5.0
+
+
+The following packages will be downloaded:
+
+    package                    |            build
+    ---------------------------|-----------------
+    branca-0.4.1               |             py_0          26 KB  conda-forge
+    altair-4.1.0               |             py_1         614 KB  conda-forge
+    folium-0.5.0               |             py_0          45 KB  conda-forge
+    vincent-0.4.4              |             py_1          28 KB  conda-forge
+    ------------------------------------------------------------
+                                           Total:         713 KB
+
+The following NEW packages will be INSTALLED:
+
+    altair:  4.1.0-py_1 conda-forge
+    branca:  0.4.1-py_0 conda-forge
+    folium:  0.5.0-py_0 conda-forge
+    vincent: 0.4.4-py_1 conda-forge
+
+
+Downloading and Extracting Packages
+branca-0.4.1         | 26 KB     | ##################################### | 100% 
+altair-4.1.0         | 614 KB    | ##################################### | 100% 
+folium-0.5.0         | 45 KB     | ##################################### | 100% 
+vincent-0.4.4        | 28 KB     | ##################################### | 100% 
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+Libraries imported.
+In [3]:
+#Read the data for examination (Source: http://landregistry.data.gov.uk/)
+df_ppd = pd.read_csv("http://prod2.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com/pp-2018.csv")
+print('done')
+done
+Explore and understanding Data
+In [4]:
+df_ppd.head(5)
+Out[4]:
+{666758D7-43A9-3363-E053-6B04A8C0D74E}	405000	2018-01-25 00:00	WR15 8LH	D	N	F	RAMBLERS WAY	Unnamed: 8	Unnamed: 9	BORASTON	TENBURY WELLS	SHROPSHIRE	SHROPSHIRE.1	A	A.1
+0	{666758D7-43AA-3363-E053-6B04A8C0D74E}	315000	2018-01-23 00:00	SY7 8QA	D	N	F	MONT CENISE	NaN	NaN	CLUN	CRAVEN ARMS	SHROPSHIRE	SHROPSHIRE	A	A
+1	{666758D7-43AD-3363-E053-6B04A8C0D74E}	165000	2018-01-19 00:00	SY1 2BF	T	Y	F	42	NaN	PENSON WAY	NaN	SHREWSBURY	SHROPSHIRE	SHROPSHIRE	A	A
+2	{666758D7-43B0-3363-E053-6B04A8C0D74E}	370000	2018-01-22 00:00	SY8 4DF	D	N	F	WILLOW HEY	NaN	NaN	ASHFORD CARBONEL	LUDLOW	SHROPSHIRE	SHROPSHIRE	A	A
+3	{666758D7-43B3-3363-E053-6B04A8C0D74E}	320000	2018-01-19 00:00	TF10 7ET	D	N	F	3	NaN	PRINCESS GARDENS	NaN	NEWPORT	WREKIN	WREKIN	A	A
+4	{666758D7-43B4-3363-E053-6B04A8C0D74E}	180000	2018-01-31 00:00	SY3 0NQ	S	N	F	79	NaN	LYTHWOOD ROAD	BAYSTON HILL	SHREWSBURY	SHROPSHIRE	SHROPSHIRE	A	A
+In [5]:
+df_ppd.shape
+Out[5]:
+(1029799, 16)
+Data pre-processing
+In [7]:
+# Assign meaningful column names
+df_ppd.columns = ['TUID', 'Price', 'Date_Transfer', 'Postcode', 'Prop_Type', 'Old_New', 'Duration', 'PAON', \
+                  'SAON', 'Street', 'Locality', 'Town_City', 'District', 'County', 'PPD_Cat_Type', 'Record_Status']
+In [8]:
+# Assign meaningful column names
+df_ppd.columns = ['TUID', 'Price', 'Date_Transfer', 'Postcode', 'Prop_Type', 'Old_New', 'Duration', 'PAON', \
+                  'SAON', 'Street', 'Locality', 'Town_City', 'District', 'County', 'PPD_Cat_Type', 'Record_Status']
+# Format the date column
+df_ppd['Date_Transfer'] = df_ppd['Date_Transfer'].apply(pd.to_datetime)
+
+# Delete all obsolete transactions which were done before 2016
+df_ppd.drop(df_ppd[df_ppd.Date_Transfer.dt.year < 2016].index, inplace=True)
+
+# Sort by Date of Sale
+df_ppd.sort_values(by=['Date_Transfer'],ascending=[False],inplace=True)
+
+print('done')
+done
+In [9]:
+df_ppd_london = df_ppd.query("Town_City == 'LONDON'")
+
+# Make a list of street names in LONDON
+streets = df_ppd_london['Street'].unique().tolist()
+print('done')
+done
+In [10]:
+df_grp_price = df_ppd_london.groupby(['Street'])['Price'].mean().reset_index()
+
+# Give meaningful names to the columns
+df_grp_price.columns = ['Street', 'Avg_Price']
+print('done')
+done
+In [11]:
+#Input your Budget's Upper Limit and Lower Limit - Find the locations df_grp_price which fits your budget
+df_affordable = df_grp_price.query("(Avg_Price >= 2200000) & (Avg_Price <= 2500000)")
+print('done')
+done
+In [12]:
+# Display the dataframe
+df_affordable
+Out[12]:
+Street	Avg_Price
+196	ALBION SQUARE	2.450000e+06
+390	ANHALT ROAD	2.435000e+06
+405	ANSDELL TERRACE	2.250000e+06
+422	APPLEGARTH ROAD	2.400000e+06
+855	BARONSMEAD ROAD	2.375000e+06
+981	BEAUCLERC ROAD	2.480000e+06
+1102	BELVEDERE DRIVE	2.340000e+06
+1215	BICKENHALL STREET	2.208500e+06
+1253	BIRCHLANDS AVENUE	2.217000e+06
+1553	BRAMPTON GROVE	2.456875e+06
+1632	BRIARDALE GARDENS	2.397132e+06
+1797	BROOKWAY	2.400000e+06
+1914	BURBAGE ROAD	2.445000e+06
+1980	BURY WALK	2.492500e+06
+2068	CALLCOTT STREET	2.375000e+06
+2129	CAMPDEN HILL ROAD	2.379653e+06
+2136	CAMPION ROAD	2.461000e+06
+2158	CANNING PLACE	2.425000e+06
+2225	CARLISLE ROAD	2.200000e+06
+2230	CARLTON GARDENS	2.483500e+06
+2242	CARLYLE COURT	2.300000e+06
+2406	CHALCOT SQUARE	2.286679e+06
+2484	CHARLES LANE	2.414000e+06
+2562	CHELSEA CRESCENT	2.495000e+06
+2606	CHESTER CLOSE NORTH	2.450000e+06
+2638	CHEYNE COURT	2.250000e+06
+2641	CHEYNE ROW	2.410000e+06
+2686	CHISWICK MALL	2.287500e+06
+2761	CITY ROAD	2.468340e+06
+2808	CLARENDON STREET	2.250000e+06
+...	...	...
+10935	RUSSELL GARDENS MEWS	2.300000e+06
+11182	SETTLES STREET	2.487500e+06
+11257	SHELDON AVENUE	2.349542e+06
+11491	SOUTH END ROW	2.470000e+06
+11568	SOUTHWOOD LAWN ROAD	2.350000e+06
+11571	SOVEREIGN PARK	2.500000e+06
+11788	ST MARGARETS CRESCENT	2.216500e+06
+11824	ST OSWALDS PLACE	2.250000e+06
+11844	ST PETERS SQUARE	2.468730e+06
+11881	STAFFORD TERRACE	2.355000e+06
+12221	SUTHERLAND PLACE	2.456000e+06
+12283	SYDNEY STREET	2.240833e+06
+12425	THAMES BANK	2.400000e+06
+12487	THE HEXAGON	2.335000e+06
+12766	TREDEGAR SQUARE	2.436666e+06
+12828	TRINITY STREET	2.317500e+06
+12978	UPPER HAMPSTEAD WALK	2.500000e+06
+13240	WALPOLE GARDENS	2.303500e+06
+13242	WALPOLE STREET	2.242500e+06
+13316	WARWICK SQUARE	2.432273e+06
+13415	WELBECK WAY	2.267000e+06
+13427	WELLESLEY TERRACE	2.410000e+06
+13438	WELLINGTON STREET	2.293155e+06
+13570	WESTMORELAND PLACE	2.300000e+06
+13677	WHITFIELD STREET	2.451000e+06
+13722	WILFRED STREET	2.410538e+06
+13748	WILLOW BRIDGE ROAD	2.425000e+06
+13768	WILSON STREET	2.257500e+06
+13796	WINCHENDON ROAD	2.350000e+06
+13833	WINGATE ROAD	2.206400e+06
+162 rows × 2 columns
+
+In [13]:
+import pandas as pd
+import numpy as np
+import datetime as DT
+import hmac
+from geopy.geocoders import Nominatim
+from geopy.distance import vincenty
+# import k-means from clustering stage
+from sklearn.cluster import KMeans
+print('done')
+done
+In [14]:
+for index, item in df_affordable.iterrows():
+    print(f"index: {index}")
+    print(f"item: {item}")
+    print(f"item.Street only: {item.Street}")
+index: 196
+item: Street       ALBION SQUARE
+Avg_Price         2.45e+06
+Name: 196, dtype: object
+item.Street only: ALBION SQUARE
+index: 390
+item: Street       ANHALT ROAD
+Avg_Price      2.435e+06
+Name: 390, dtype: object
+item.Street only: ANHALT ROAD
+index: 405
+item: Street       ANSDELL TERRACE
+Avg_Price           2.25e+06
+Name: 405, dtype: object
+item.Street only: ANSDELL TERRACE
+index: 422
+item: Street       APPLEGARTH ROAD
+Avg_Price            2.4e+06
+Name: 422, dtype: object
+item.Street only: APPLEGARTH ROAD
+index: 855
+item: Street       BARONSMEAD ROAD
+Avg_Price          2.375e+06
+Name: 855, dtype: object
+item.Street only: BARONSMEAD ROAD
+index: 981
+item: Street       BEAUCLERC ROAD
+Avg_Price          2.48e+06
+Name: 981, dtype: object
+item.Street only: BEAUCLERC ROAD
+index: 1102
+item: Street       BELVEDERE DRIVE
+Avg_Price           2.34e+06
+Name: 1102, dtype: object
+item.Street only: BELVEDERE DRIVE
+index: 1215
+item: Street       BICKENHALL STREET
+Avg_Price           2.2085e+06
+Name: 1215, dtype: object
+item.Street only: BICKENHALL STREET
+index: 1253
+item: Street       BIRCHLANDS AVENUE
+Avg_Price            2.217e+06
+Name: 1253, dtype: object
+item.Street only: BIRCHLANDS AVENUE
+index: 1553
+item: Street       BRAMPTON GROVE
+Avg_Price       2.45688e+06
+Name: 1553, dtype: object
+item.Street only: BRAMPTON GROVE
+index: 1632
+item: Street       BRIARDALE GARDENS
+Avg_Price          2.39713e+06
+Name: 1632, dtype: object
+item.Street only: BRIARDALE GARDENS
+index: 1797
+item: Street       BROOKWAY
+Avg_Price     2.4e+06
+Name: 1797, dtype: object
+item.Street only: BROOKWAY
+index: 1914
+item: Street       BURBAGE ROAD
+Avg_Price       2.445e+06
+Name: 1914, dtype: object
+item.Street only: BURBAGE ROAD
+index: 1980
+item: Street        BURY WALK
+Avg_Price    2.4925e+06
+Name: 1980, dtype: object
+item.Street only: BURY WALK
+index: 2068
+item: Street       CALLCOTT STREET
+Avg_Price          2.375e+06
+Name: 2068, dtype: object
+item.Street only: CALLCOTT STREET
+index: 2129
+item: Street       CAMPDEN HILL ROAD
+Avg_Price          2.37965e+06
+Name: 2129, dtype: object
+item.Street only: CAMPDEN HILL ROAD
+index: 2136
+item: Street       CAMPION ROAD
+Avg_Price       2.461e+06
+Name: 2136, dtype: object
+item.Street only: CAMPION ROAD
+index: 2158
+item: Street       CANNING PLACE
+Avg_Price        2.425e+06
+Name: 2158, dtype: object
+item.Street only: CANNING PLACE
+index: 2225
+item: Street       CARLISLE ROAD
+Avg_Price          2.2e+06
+Name: 2225, dtype: object
+item.Street only: CARLISLE ROAD
+index: 2230
+item: Street       CARLTON GARDENS
+Avg_Price         2.4835e+06
+Name: 2230, dtype: object
+item.Street only: CARLTON GARDENS
+index: 2242
+item: Street       CARLYLE COURT
+Avg_Price          2.3e+06
+Name: 2242, dtype: object
+item.Street only: CARLYLE COURT
+index: 2406
+item: Street       CHALCOT SQUARE
+Avg_Price       2.28668e+06
+Name: 2406, dtype: object
+item.Street only: CHALCOT SQUARE
+index: 2484
+item: Street       CHARLES LANE
+Avg_Price       2.414e+06
+Name: 2484, dtype: object
+item.Street only: CHARLES LANE
+index: 2562
+item: Street       CHELSEA CRESCENT
+Avg_Price           2.495e+06
+Name: 2562, dtype: object
+item.Street only: CHELSEA CRESCENT
+index: 2606
+item: Street       CHESTER CLOSE NORTH
+Avg_Price               2.45e+06
+Name: 2606, dtype: object
+item.Street only: CHESTER CLOSE NORTH
+index: 2638
+item: Street       CHEYNE COURT
+Avg_Price        2.25e+06
+Name: 2638, dtype: object
+item.Street only: CHEYNE COURT
+index: 2641
+item: Street       CHEYNE ROW
+Avg_Price      2.41e+06
+Name: 2641, dtype: object
+item.Street only: CHEYNE ROW
+index: 2686
+item: Street       CHISWICK MALL
+Avg_Price       2.2875e+06
+Name: 2686, dtype: object
+item.Street only: CHISWICK MALL
+index: 2761
+item: Street         CITY ROAD
+Avg_Price    2.46834e+06
+Name: 2761, dtype: object
+item.Street only: CITY ROAD
+index: 2808
+item: Street       CLARENDON STREET
+Avg_Price            2.25e+06
+Name: 2808, dtype: object
+item.Street only: CLARENDON STREET
+index: 2900
+item: Street       CLONCURRY STREET
+Avg_Price         2.38833e+06
+Name: 2900, dtype: object
+item.Street only: CLONCURRY STREET
+index: 2944
+item: Street       COLBECK MEWS
+Avg_Price      2.3675e+06
+Name: 2944, dtype: object
+item.Street only: COLBECK MEWS
+index: 2995
+item: Street       COLLEGE CRESCENT
+Avg_Price            2.44e+06
+Name: 2995, dtype: object
+item.Street only: COLLEGE CRESCENT
+index: 3202
+item: Street       CORNWALL TERRACE MEWS
+Avg_Price                 2.35e+06
+Name: 3202, dtype: object
+item.Street only: CORNWALL TERRACE MEWS
+index: 3255
+item: Street       COURT LANE GARDENS
+Avg_Price              2.36e+06
+Name: 3255, dtype: object
+item.Street only: COURT LANE GARDENS
+index: 3377
+item: Street       CRESCENT GROVE
+Avg_Price         2.298e+06
+Name: 3377, dtype: object
+item.Street only: CRESCENT GROVE
+index: 3583
+item: Street       DALEBURY ROAD
+Avg_Price          2.4e+06
+Name: 3583, dtype: object
+item.Street only: DALEBURY ROAD
+index: 3848
+item: Street       DEWHURST ROAD
+Avg_Price        2.425e+06
+Name: 3848, dtype: object
+item.Street only: DEWHURST ROAD
+index: 3929
+item: Street       DORIA ROAD
+Avg_Price    2.3625e+06
+Name: 3929, dtype: object
+item.Street only: DORIA ROAD
+index: 3980
+item: Street       DOWNSHIRE HILL
+Avg_Price         2.225e+06
+Name: 3980, dtype: object
+item.Street only: DOWNSHIRE HILL
+index: 4035
+item: Street       DUCHESS WALK
+Avg_Price      2.4775e+06
+Name: 4035, dtype: object
+item.Street only: DUCHESS WALK
+index: 4232
+item: Street       ECCLESTON SQUARE MEWS
+Avg_Price               2.3355e+06
+Name: 4232, dtype: object
+item.Street only: ECCLESTON SQUARE MEWS
+index: 4285
+item: Street       EGBERT STREET
+Avg_Price        2.265e+06
+Name: 4285, dtype: object
+item.Street only: EGBERT STREET
+index: 4289
+item: Street       EGERTON PLACE
+Avg_Price          2.2e+06
+Name: 4289, dtype: object
+item.Street only: EGERTON PLACE
+index: 4375
+item: Street       ELM PARK ROAD
+Avg_Price      2.32042e+06
+Name: 4375, dtype: object
+item.Street only: ELM PARK ROAD
+index: 4894
+item: Street       FLORAL STREET
+Avg_Price      2.22722e+06
+Name: 4894, dtype: object
+item.Street only: FLORAL STREET
+index: 5016
+item: Street       FRANK DIXON WAY
+Avg_Price         2.2125e+06
+Name: 5016, dtype: object
+item.Street only: FRANK DIXON WAY
+index: 5098
+item: Street       FULTON MEWS
+Avg_Price      2.299e+06
+Name: 5098, dtype: object
+item.Street only: FULTON MEWS
+index: 5241
+item: Street       GERARD ROAD
+Avg_Price     2.2585e+06
+Name: 5241, dtype: object
+item.Street only: GERARD ROAD
+index: 5244
+item: Street       GERRARD ROAD
+Avg_Price      2.2425e+06
+Name: 5244, dtype: object
+item.Street only: GERRARD ROAD
+index: 5289
+item: Street       GIRDLERS ROAD
+Avg_Price      2.44167e+06
+Name: 5289, dtype: object
+item.Street only: GIRDLERS ROAD
+index: 5382
+item: Street       GLOUCESTER CRESCENT
+Avg_Price            2.35083e+06
+Name: 5382, dtype: object
+item.Street only: GLOUCESTER CRESCENT
+index: 5450
+item: Street       GORDON PLACE
+Avg_Price       2.477e+06
+Name: 5450, dtype: object
+item.Street only: GORDON PLACE
+index: 5486
+item: Street       GRAFTON SQUARE
+Avg_Price          2.27e+06
+Name: 5486, dtype: object
+item.Street only: GRAFTON SQUARE
+index: 5493
+item: Street       GRAHAM TERRACE
+Avg_Price         2.325e+06
+Name: 5493, dtype: object
+item.Street only: GRAHAM TERRACE
+index: 5952
+item: Street       HARMAN DRIVE
+Avg_Price      2.2625e+06
+Name: 5952, dtype: object
+item.Street only: HARMAN DRIVE
+index: 5976
+item: Street       HARRIS STREET
+Avg_Price      2.47177e+06
+Name: 5976, dtype: object
+item.Street only: HARRIS STREET
+index: 6039
+item: Street       HAVANNAH STREET
+Avg_Price        2.21731e+06
+Name: 6039, dtype: object
+item.Street only: HAVANNAH STREET
+index: 6111
+item: Street       HAZLEWELL ROAD
+Avg_Price           2.5e+06
+Name: 6111, dtype: object
+item.Street only: HAZLEWELL ROAD
+index: 6227
+item: Street       HEREFORD MEWS
+Avg_Price         2.31e+06
+Name: 6227, dtype: object
+item.Street only: HEREFORD MEWS
+index: 6247
+item: Street       HERONDALE AVENUE
+Avg_Price           2.475e+06
+Name: 6247, dtype: object
+item.Street only: HERONDALE AVENUE
+index: 6344
+item: Street       HIGHGATE HIGH STREET
+Avg_Price               2.211e+06
+Name: 6344, dtype: object
+item.Street only: HIGHGATE HIGH STREET
+index: 6359
+item: Street       HIGHWOOD HILL
+Avg_Price       2.2525e+06
+Name: 6359, dtype: object
+item.Street only: HIGHWOOD HILL
+index: 6395
+item: Street       HILLGATE PLACE
+Avg_Price           2.2e+06
+Name: 6395, dtype: object
+item.Street only: HILLGATE PLACE
+index: 6506
+item: Street       HOLLYCROFT AVENUE
+Avg_Price          2.36138e+06
+Name: 6506, dtype: object
+item.Street only: HOLLYCROFT AVENUE
+index: 6510
+item: Street       HOLLYWOOD MEWS
+Avg_Price          2.35e+06
+Name: 6510, dtype: object
+item.Street only: HOLLYWOOD MEWS
+index: 6555
+item: Street       HONEYWELL ROAD
+Avg_Price       2.27833e+06
+Name: 6555, dtype: object
+item.Street only: HONEYWELL ROAD
+index: 6611
+item: Street       HORTENSIA ROAD
+Avg_Price       2.27592e+06
+Name: 6611, dtype: object
+item.Street only: HORTENSIA ROAD
+index: 6640
+item: Street       HOXTON SQUARE
+Avg_Price      2.23429e+06
+Name: 6640, dtype: object
+item.Street only: HOXTON SQUARE
+index: 6666
+item: Street       HUNTER ROAD
+Avg_Price        2.3e+06
+Name: 6666, dtype: object
+item.Street only: HUNTER ROAD
+index: 6825
+item: Street       JACKSONS LANE
+Avg_Price       2.3625e+06
+Name: 6825, dtype: object
+item.Street only: JACKSONS LANE
+index: 6885
+item: Street       JOHN STREET
+Avg_Price      2.235e+06
+Name: 6885, dtype: object
+item.Street only: JOHN STREET
+index: 7190
+item: Street       KINNERTON STREET
+Avg_Price          2.4856e+06
+Name: 7190, dtype: object
+item.Street only: KINNERTON STREET
+index: 7224
+item: Street       KNARESBOROUGH PLACE
+Avg_Price              2.325e+06
+Name: 7224, dtype: object
+item.Street only: KNARESBOROUGH PLACE
+index: 7244
+item: Street       KNOX STREET
+Avg_Price       2.25e+06
+Name: 7244, dtype: object
+item.Street only: KNOX STREET
+index: 7264
+item: Street       LADBROKE GROVE
+Avg_Price        2.4833e+06
+Name: 7264, dtype: object
+item.Street only: LADBROKE GROVE
+index: 7333
+item: Street       LANCASTER MEWS
+Avg_Price        2.3125e+06
+Name: 7333, dtype: object
+item.Street only: LANCASTER MEWS
+index: 7403
+item: Street       LANSDOWNE ROAD
+Avg_Price       2.36488e+06
+Name: 7403, dtype: object
+item.Street only: LANSDOWNE ROAD
+index: 7432
+item: Street       LATIMER INDUSTRIAL ESTATE
+Avg_Price                      2.4e+06
+Name: 7432, dtype: object
+item.Street only: LATIMER INDUSTRIAL ESTATE
+index: 7485
+item: Street       LAXTON PLACE
+Avg_Price         2.5e+06
+Name: 7485, dtype: object
+item.Street only: LAXTON PLACE
+index: 7687
+item: Street       LINCOLN AVENUE
+Avg_Price        2.2035e+06
+Name: 7687, dtype: object
+item.Street only: LINCOLN AVENUE
+index: 7716
+item: Street       LINGFIELD ROAD
+Avg_Price       2.24875e+06
+Name: 7716, dtype: object
+item.Street only: LINGFIELD ROAD
+index: 7745
+item: Street       LISSON STREET
+Avg_Price       2.4625e+06
+Name: 7745, dtype: object
+item.Street only: LISSON STREET
+index: 7779
+item: Street       LIVERPOOL GROVE
+Avg_Price          2.288e+06
+Name: 7779, dtype: object
+item.Street only: LIVERPOOL GROVE
+index: 7871
+item: Street       LONGWOOD DRIVE
+Avg_Price         2.375e+06
+Name: 7871, dtype: object
+item.Street only: LONGWOOD DRIVE
+index: 7877
+item: Street       LONSDALE SQUARE
+Avg_Price         2.3575e+06
+Name: 7877, dtype: object
+item.Street only: LONSDALE SQUARE
+index: 8415
+item: Street       MAZE HILL
+Avg_Price     2.25e+06
+Name: 8415, dtype: object
+item.Street only: MAZE HILL
+index: 8550
+item: Street       MIDDLESEX PASSAGE
+Avg_Price             2.28e+06
+Name: 8550, dtype: object
+item.Street only: MIDDLESEX PASSAGE
+index: 8714
+item: Street       MONTPELIER AVENUE
+Avg_Price              2.5e+06
+Name: 8714, dtype: object
+item.Street only: MONTPELIER AVENUE
+index: 8724
+item: Street       MONTPELIER WALK
+Avg_Price           2.32e+06
+Name: 8724, dtype: object
+item.Street only: MONTPELIER WALK
+index: 8872
+item: Street       MULTON ROAD
+Avg_Price        2.3e+06
+Name: 8872, dtype: object
+item.Street only: MULTON ROAD
+index: 8877
+item: Street       MUNDEN STREET
+Avg_Price         2.25e+06
+Name: 8877, dtype: object
+item.Street only: MUNDEN STREET
+index: 9151
+item: Street       NORFOLK CRESCENT
+Avg_Price         2.22333e+06
+Name: 9151, dtype: object
+item.Street only: NORFOLK CRESCENT
+index: 9174
+item: Street       NORTH CIRCULAR ROAD
+Avg_Price            2.39314e+06
+Name: 9174, dtype: object
+item.Street only: NORTH CIRCULAR ROAD
+index: 9250
+item: Street       NOTTINGHAM STREET
+Avg_Price           2.2275e+06
+Name: 9250, dtype: object
+item.Street only: NOTTINGHAM STREET
+index: 9325
+item: Street       OAKLEY STREET
+Avg_Price      2.38129e+06
+Name: 9325, dtype: object
+item.Street only: OAKLEY STREET
+index: 9336
+item: Street       OAKWOOD COURT
+Avg_Price      2.34875e+06
+Name: 9336, dtype: object
+item.Street only: OAKWOOD COURT
+index: 9344
+item: Street       OBSERVATORY GARDENS
+Avg_Price               2.42e+06
+Name: 9344, dtype: object
+item.Street only: OBSERVATORY GARDENS
+index: 9379
+item: Street       OLD COURT PLACE
+Avg_Price          2.395e+06
+Name: 9379, dtype: object
+item.Street only: OLD COURT PLACE
+index: 9440
+item: Street       ONSLOW MEWS WEST
+Avg_Price             2.3e+06
+Name: 9440, dtype: object
+item.Street only: ONSLOW MEWS WEST
+index: 9572
+item: Street       PALACE PLACE
+Avg_Price         2.3e+06
+Name: 9572, dtype: object
+item.Street only: PALACE PLACE
+index: 9601
+item: Street       PANTON STREET
+Avg_Price        2.475e+06
+Name: 9601, dtype: object
+item.Street only: PANTON STREET
+index: 9620
+item: Street       PARK CRESCENT
+Avg_Price         2.44e+06
+Name: 9620, dtype: object
+item.Street only: PARK CRESCENT
+index: 9629
+item: Street        PARK LANE
+Avg_Price    2.2415e+06
+Name: 9629, dtype: object
+item.Street only: PARK LANE
+index: 9650
+item: Street       PARKE ROAD
+Avg_Price    2.2625e+06
+Name: 9650, dtype: object
+item.Street only: PARKE ROAD
+index: 9653
+item: Street       PARKFIELDS
+Avg_Price       2.2e+06
+Name: 9653, dtype: object
+item.Street only: PARKFIELDS
+index: 9690
+item: Street       PARTHENIA ROAD
+Avg_Price       2.20057e+06
+Name: 9690, dtype: object
+item.Street only: PARTHENIA ROAD
+index: 9722
+item: Street       PAVILION ROAD
+Avg_Price          2.2e+06
+Name: 9722, dtype: object
+item.Street only: PAVILION ROAD
+index: 9783
+item: Street       PEMBRIDGE MEWS
+Avg_Price         2.251e+06
+Name: 9783, dtype: object
+item.Street only: PEMBRIDGE MEWS
+index: 9785
+item: Street       PEMBRIDGE ROAD
+Avg_Price           2.4e+06
+Name: 9785, dtype: object
+item.Street only: PEMBRIDGE ROAD
+index: 9794
+item: Street       PEMBROKE STUDIOS
+Avg_Price            2.45e+06
+Name: 9794, dtype: object
+item.Street only: PEMBROKE STUDIOS
+index: 9799
+item: Street       PENCOMBE MEWS
+Avg_Price          2.2e+06
+Name: 9799, dtype: object
+item.Street only: PENCOMBE MEWS
+index: 9879
+item: Street       PETERSHAM PLACE
+Avg_Price            2.3e+06
+Name: 9879, dtype: object
+item.Street only: PETERSHAM PLACE
+index: 9894
+item: Street       PHILLIMORE GARDENS
+Avg_Price           2.48467e+06
+Name: 9894, dtype: object
+item.Street only: PHILLIMORE GARDENS
+index: 9902
+item: Street       PHYSIC PLACE
+Avg_Price         2.5e+06
+Name: 9902, dtype: object
+item.Street only: PHYSIC PLACE
+index: 9940
+item: Street       PITFIELD STREET
+Avg_Price        2.48333e+06
+Name: 9940, dtype: object
+item.Street only: PITFIELD STREET
+index: 10150
+item: Street       PRINCES GATE
+Avg_Price     2.40333e+06
+Name: 10150, dtype: object
+item.Street only: PRINCES GATE
+index: 10178
+item: Street       PRIORY ROAD
+Avg_Price    2.24826e+06
+Name: 10178, dtype: object
+item.Street only: PRIORY ROAD
+index: 10189
+item: Street       PROTHERO GARDENS
+Avg_Price          2.2025e+06
+Name: 10189, dtype: object
+item.Street only: PROTHERO GARDENS
+index: 10225
+item: Street       PUTNEY HIGH STREET
+Avg_Price            2.3486e+06
+Name: 10225, dtype: object
+item.Street only: PUTNEY HIGH STREET
+index: 10242
+item: Street       QUARRENDON STREET
+Avg_Price          2.43775e+06
+Name: 10242, dtype: object
+item.Street only: QUARRENDON STREET
+index: 10275
+item: Street       QUEENS GATE TERRACE
+Avg_Price            2.39944e+06
+Name: 10275, dtype: object
+item.Street only: QUEENS GATE TERRACE
+index: 10329
+item: Street       RADSTOCK STREET
+Avg_Price         2.2175e+06
+Name: 10329, dtype: object
+item.Street only: RADSTOCK STREET
+index: 10374
+item: Street       RANELAGH AVENUE
+Avg_Price            2.3e+06
+Name: 10374, dtype: object
+item.Street only: RANELAGH AVENUE
+index: 10482
+item: Street       REDCLIFFE ROAD
+Avg_Price       2.44875e+06
+Name: 10482, dtype: object
+item.Street only: REDCLIFFE ROAD
+index: 10507
+item: Street       REEVES MEWS
+Avg_Price       2.45e+06
+Name: 10507, dtype: object
+item.Street only: REEVES MEWS
+index: 10564
+item: Street       RHEIDOL MEWS
+Avg_Price        2.31e+06
+Name: 10564, dtype: object
+item.Street only: RHEIDOL MEWS
+index: 10619
+item: Street       RINGWOOD AVENUE
+Avg_Price          2.275e+06
+Name: 10619, dtype: object
+item.Street only: RINGWOOD AVENUE
+index: 10700
+item: Street       RODERICK ROAD
+Avg_Price          2.4e+06
+Name: 10700, dtype: object
+item.Street only: RODERICK ROAD
+index: 10757
+item: Street       ROPEMAKERS FIELDS
+Avg_Price              2.5e+06
+Name: 10757, dtype: object
+item.Street only: ROPEMAKERS FIELDS
+index: 10872
+item: Street       ROYAL CRESCENT
+Avg_Price       2.34833e+06
+Name: 10872, dtype: object
+item.Street only: ROYAL CRESCENT
+index: 10878
+item: Street       ROYAL HILL
+Avg_Price    2.2525e+06
+Name: 10878, dtype: object
+item.Street only: ROYAL HILL
+index: 10935
+item: Street       RUSSELL GARDENS MEWS
+Avg_Price                 2.3e+06
+Name: 10935, dtype: object
+item.Street only: RUSSELL GARDENS MEWS
+index: 11182
+item: Street       SETTLES STREET
+Avg_Price        2.4875e+06
+Name: 11182, dtype: object
+item.Street only: SETTLES STREET
+index: 11257
+item: Street       SHELDON AVENUE
+Avg_Price       2.34954e+06
+Name: 11257, dtype: object
+item.Street only: SHELDON AVENUE
+index: 11491
+item: Street       SOUTH END ROW
+Avg_Price         2.47e+06
+Name: 11491, dtype: object
+item.Street only: SOUTH END ROW
+index: 11568
+item: Street       SOUTHWOOD LAWN ROAD
+Avg_Price               2.35e+06
+Name: 11568, dtype: object
+item.Street only: SOUTHWOOD LAWN ROAD
+index: 11571
+item: Street       SOVEREIGN PARK
+Avg_Price           2.5e+06
+Name: 11571, dtype: object
+item.Street only: SOVEREIGN PARK
+index: 11788
+item: Street       ST MARGARETS CRESCENT
+Avg_Price               2.2165e+06
+Name: 11788, dtype: object
+item.Street only: ST MARGARETS CRESCENT
+index: 11824
+item: Street       ST OSWALDS PLACE
+Avg_Price            2.25e+06
+Name: 11824, dtype: object
+item.Street only: ST OSWALDS PLACE
+index: 11844
+item: Street       ST PETERS SQUARE
+Avg_Price         2.46873e+06
+Name: 11844, dtype: object
+item.Street only: ST PETERS SQUARE
+index: 11881
+item: Street       STAFFORD TERRACE
+Avg_Price           2.355e+06
+Name: 11881, dtype: object
+item.Street only: STAFFORD TERRACE
+index: 12221
+item: Street       SUTHERLAND PLACE
+Avg_Price           2.456e+06
+Name: 12221, dtype: object
+item.Street only: SUTHERLAND PLACE
+index: 12283
+item: Street       SYDNEY STREET
+Avg_Price      2.24083e+06
+Name: 12283, dtype: object
+item.Street only: SYDNEY STREET
+index: 12425
+item: Street       THAMES BANK
+Avg_Price        2.4e+06
+Name: 12425, dtype: object
+item.Street only: THAMES BANK
+index: 12487
+item: Street       THE HEXAGON
+Avg_Price      2.335e+06
+Name: 12487, dtype: object
+item.Street only: THE HEXAGON
+index: 12766
+item: Street       TREDEGAR SQUARE
+Avg_Price        2.43667e+06
+Name: 12766, dtype: object
+item.Street only: TREDEGAR SQUARE
+index: 12828
+item: Street       TRINITY STREET
+Avg_Price        2.3175e+06
+Name: 12828, dtype: object
+item.Street only: TRINITY STREET
+index: 12978
+item: Street       UPPER HAMPSTEAD WALK
+Avg_Price                 2.5e+06
+Name: 12978, dtype: object
+item.Street only: UPPER HAMPSTEAD WALK
+index: 13240
+item: Street       WALPOLE GARDENS
+Avg_Price         2.3035e+06
+Name: 13240, dtype: object
+item.Street only: WALPOLE GARDENS
+index: 13242
+item: Street       WALPOLE STREET
+Avg_Price        2.2425e+06
+Name: 13242, dtype: object
+item.Street only: WALPOLE STREET
+index: 13316
+item: Street       WARWICK SQUARE
+Avg_Price       2.43227e+06
+Name: 13316, dtype: object
+item.Street only: WARWICK SQUARE
+index: 13415
+item: Street       WELBECK WAY
+Avg_Price      2.267e+06
+Name: 13415, dtype: object
+item.Street only: WELBECK WAY
+index: 13427
+item: Street       WELLESLEY TERRACE
+Avg_Price             2.41e+06
+Name: 13427, dtype: object
+item.Street only: WELLESLEY TERRACE
+index: 13438
+item: Street       WELLINGTON STREET
+Avg_Price          2.29316e+06
+Name: 13438, dtype: object
+item.Street only: WELLINGTON STREET
+index: 13570
+item: Street       WESTMORELAND PLACE
+Avg_Price               2.3e+06
+Name: 13570, dtype: object
+item.Street only: WESTMORELAND PLACE
+index: 13677
+item: Street       WHITFIELD STREET
+Avg_Price           2.451e+06
+Name: 13677, dtype: object
+item.Street only: WHITFIELD STREET
+index: 13722
+item: Street       WILFRED STREET
+Avg_Price       2.41054e+06
+Name: 13722, dtype: object
+item.Street only: WILFRED STREET
+index: 13748
+item: Street       WILLOW BRIDGE ROAD
+Avg_Price             2.425e+06
+Name: 13748, dtype: object
+item.Street only: WILLOW BRIDGE ROAD
+index: 13768
+item: Street       WILSON STREET
+Avg_Price       2.2575e+06
+Name: 13768, dtype: object
+item.Street only: WILSON STREET
+index: 13796
+item: Street       WINCHENDON ROAD
+Avg_Price           2.35e+06
+Name: 13796, dtype: object
+item.Street only: WINCHENDON ROAD
+index: 13833
+item: Street       WINGATE ROAD
+Avg_Price      2.2064e+06
+Name: 13833, dtype: object
+item.Street only: WINGATE ROAD
+In [15]:
+geolocator = Nominatim()
+/opt/conda/envs/Python36/lib/python3.6/site-packages/ipykernel/__main__.py:1: DeprecationWarning: Using Nominatim with the default "geopy/1.22.0" `user_agent` is strongly discouraged, as it violates Nominatim's ToS https://operations.osmfoundation.org/policies/nominatim/ and may possibly cause 403 and 429 HTTP errors. Please specify a custom `user_agent` with `Nominatim(user_agent="my-application")` or by overriding the default `user_agent`: `geopy.geocoders.options.default_user_agent = "my-application"`. In geopy 2.0 this will become an exception.
+  if __name__ == '__main__':
+In [16]:
+df_affordable['city_coord'] = df_affordable['Street'].apply(geolocator.geocode).apply(lambda x: (x.latitude, x.longitude))
+/opt/conda/envs/Python36/lib/python3.6/site-packages/ipykernel/__main__.py:1: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+  if __name__ == '__main__':
+In [17]:
+df_affordable
+Out[17]:
+Street	Avg_Price	city_coord
+196	ALBION SQUARE	2.450000e+06	(-41.27375755, 173.28939323910353)
+390	ANHALT ROAD	2.435000e+06	(51.4803164, -0.1668011)
+405	ANSDELL TERRACE	2.250000e+06	(51.4998899, -0.1891027)
+422	APPLEGARTH ROAD	2.400000e+06	(53.7486539, -0.3266704)
+855	BARONSMEAD ROAD	2.375000e+06	(51.4773147, -0.239457)
+981	BEAUCLERC ROAD	2.480000e+06	(30.2114523, -81.6179807)
+1102	BELVEDERE DRIVE	2.340000e+06	(38.0728178, -78.4587964)
+1215	BICKENHALL STREET	2.208500e+06	(51.5212014, -0.1589082)
+1253	BIRCHLANDS AVENUE	2.217000e+06	(51.4483941, -0.1604676)
+1553	BRAMPTON GROVE	2.456875e+06	(51.5899607, -0.3185249)
+1632	BRIARDALE GARDENS	2.397132e+06	(51.5601748, -0.1954305)
+1797	BROOKWAY	2.400000e+06	(45.432184899999996, -122.80281166115779)
+1914	BURBAGE ROAD	2.445000e+06	(52.5385071, -1.3536736)
+1980	BURY WALK	2.492500e+06	(52.1455294, -0.4235933)
+2068	CALLCOTT STREET	2.375000e+06	(51.5083499, -0.1983276)
+2129	CAMPDEN HILL ROAD	2.379653e+06	(51.5081106, -0.1996673)
+2136	CAMPION ROAD	2.461000e+06	(43.623321, -70.236225)
+2158	CANNING PLACE	2.425000e+06	(51.4994945, -0.1854809)
+2225	CARLISLE ROAD	2.200000e+06	(43.3994382, -79.973215)
+2230	CARLTON GARDENS	2.483500e+06	(-37.80194335, 144.9719701710172)
+2242	CARLYLE COURT	2.300000e+06	(32.972700950000004, -97.17339170977195)
+2406	CHALCOT SQUARE	2.286679e+06	(51.5410876, -0.1559279)
+2484	CHARLES LANE	2.414000e+06	(40.257626, -75.093891)
+2562	CHELSEA CRESCENT	2.495000e+06	(34.522443, -85.443891)
+2606	CHESTER CLOSE NORTH	2.450000e+06	(51.5292054, -0.1450813)
+2638	CHEYNE COURT	2.250000e+06	(52.0359049, 0.7276119)
+2641	CHEYNE ROW	2.410000e+06	(51.4837173, -0.169603)
+2686	CHISWICK MALL	2.287500e+06	(51.4879942, -0.2466045)
+2761	CITY ROAD	2.468340e+06	(51.5296972, -0.0977626)
+2808	CLARENDON STREET	2.250000e+06	(42.2849611, -71.3455345)
+...	...	...	...
+10935	RUSSELL GARDENS MEWS	2.300000e+06	(51.4999175, -0.2119443)
+11182	SETTLES STREET	2.487500e+06	(32.2394242, -101.4571232)
+11257	SHELDON AVENUE	2.349542e+06	(42.0209245, -93.6542243)
+11491	SOUTH END ROW	2.470000e+06	(51.4987463, -0.1890787)
+11568	SOUTHWOOD LAWN ROAD	2.350000e+06	(51.5746267, -0.146238)
+11571	SOVEREIGN PARK	2.500000e+06	(-27.49371345, 153.21014259876813)
+11788	ST MARGARETS CRESCENT	2.216500e+06	(17.0975135, -88.6161153)
+11824	ST OSWALDS PLACE	2.250000e+06	(51.4872071, -0.1185341)
+11844	ST PETERS SQUARE	2.468730e+06	(41.9022353, 12.457357310298008)
+11881	STAFFORD TERRACE	2.355000e+06	(53.680501, -1.5183383)
+12221	SUTHERLAND PLACE	2.456000e+06	(51.8711375, -0.4228998)
+12283	SYDNEY STREET	2.240833e+06	(-29.823972, 30.9192479)
+12425	THAMES BANK	2.400000e+06	(52.0856689, -0.2432764)
+12487	THE HEXAGON	2.335000e+06	(51.45388235, -0.9778342181052991)
+12766	TREDEGAR SQUARE	2.436666e+06	(51.5270935, -0.03218423325966063)
+12828	TRINITY STREET	2.317500e+06	(50.3383163, -4.7954295)
+12978	UPPER HAMPSTEAD WALK	2.500000e+06	(51.558467, -0.1774529)
+13240	WALPOLE GARDENS	2.303500e+06	(51.4397435, -0.3412634)
+13242	WALPOLE STREET	2.242500e+06	(-27.8725844, 151.2717768)
+13316	WARWICK SQUARE	2.432273e+06	(33.7385632, -117.84650567746482)
+13415	WELBECK WAY	2.267000e+06	(52.5580053, -0.262309)
+13427	WELLESLEY TERRACE	2.410000e+06	(54.9743127, -1.6402018)
+13438	WELLINGTON STREET	2.293155e+06	(45.4234495, -75.6980579)
+13570	WESTMORELAND PLACE	2.300000e+06	(40.7402242, -111.8463235)
+13677	WHITFIELD STREET	2.451000e+06	(-12.4607263, 130.8395852)
+13722	WILFRED STREET	2.410538e+06	(51.442178, 0.372743)
+13748	WILLOW BRIDGE ROAD	2.425000e+06	(53.6408743, -1.2004617)
+13768	WILSON STREET	2.257500e+06	(42.766462, -71.099469)
+13796	WINCHENDON ROAD	2.350000e+06	(42.645331, -71.954714)
+13833	WINGATE ROAD	2.206400e+06	(51.092557, 1.1794554)
+162 rows × 3 columns
+
+In [18]:
+df_affordable[['Latitude', 'Longitude']] = df_affordable['city_coord'].apply(pd.Series)
+print('done')
+done
+/opt/conda/envs/Python36/lib/python3.6/site-packages/pandas/core/frame.py:3391: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+  self[k1] = value[k2]
+In [19]:
+df_affordable
+Out[19]:
+Street	Avg_Price	city_coord	Latitude	Longitude
+196	ALBION SQUARE	2.450000e+06	(-41.27375755, 173.28939323910353)	-41.273758	173.289393
+390	ANHALT ROAD	2.435000e+06	(51.4803164, -0.1668011)	51.480316	-0.166801
+405	ANSDELL TERRACE	2.250000e+06	(51.4998899, -0.1891027)	51.499890	-0.189103
+422	APPLEGARTH ROAD	2.400000e+06	(53.7486539, -0.3266704)	53.748654	-0.326670
+855	BARONSMEAD ROAD	2.375000e+06	(51.4773147, -0.239457)	51.477315	-0.239457
+981	BEAUCLERC ROAD	2.480000e+06	(30.2114523, -81.6179807)	30.211452	-81.617981
+1102	BELVEDERE DRIVE	2.340000e+06	(38.0728178, -78.4587964)	38.072818	-78.458796
+1215	BICKENHALL STREET	2.208500e+06	(51.5212014, -0.1589082)	51.521201	-0.158908
+1253	BIRCHLANDS AVENUE	2.217000e+06	(51.4483941, -0.1604676)	51.448394	-0.160468
+1553	BRAMPTON GROVE	2.456875e+06	(51.5899607, -0.3185249)	51.589961	-0.318525
+1632	BRIARDALE GARDENS	2.397132e+06	(51.5601748, -0.1954305)	51.560175	-0.195431
+1797	BROOKWAY	2.400000e+06	(45.432184899999996, -122.80281166115779)	45.432185	-122.802812
+1914	BURBAGE ROAD	2.445000e+06	(52.5385071, -1.3536736)	52.538507	-1.353674
+1980	BURY WALK	2.492500e+06	(52.1455294, -0.4235933)	52.145529	-0.423593
+2068	CALLCOTT STREET	2.375000e+06	(51.5083499, -0.1983276)	51.508350	-0.198328
+2129	CAMPDEN HILL ROAD	2.379653e+06	(51.5081106, -0.1996673)	51.508111	-0.199667
+2136	CAMPION ROAD	2.461000e+06	(43.623321, -70.236225)	43.623321	-70.236225
+2158	CANNING PLACE	2.425000e+06	(51.4994945, -0.1854809)	51.499494	-0.185481
+2225	CARLISLE ROAD	2.200000e+06	(43.3994382, -79.973215)	43.399438	-79.973215
+2230	CARLTON GARDENS	2.483500e+06	(-37.80194335, 144.9719701710172)	-37.801943	144.971970
+2242	CARLYLE COURT	2.300000e+06	(32.972700950000004, -97.17339170977195)	32.972701	-97.173392
+2406	CHALCOT SQUARE	2.286679e+06	(51.5410876, -0.1559279)	51.541088	-0.155928
+2484	CHARLES LANE	2.414000e+06	(40.257626, -75.093891)	40.257626	-75.093891
+2562	CHELSEA CRESCENT	2.495000e+06	(34.522443, -85.443891)	34.522443	-85.443891
+2606	CHESTER CLOSE NORTH	2.450000e+06	(51.5292054, -0.1450813)	51.529205	-0.145081
+2638	CHEYNE COURT	2.250000e+06	(52.0359049, 0.7276119)	52.035905	0.727612
+2641	CHEYNE ROW	2.410000e+06	(51.4837173, -0.169603)	51.483717	-0.169603
+2686	CHISWICK MALL	2.287500e+06	(51.4879942, -0.2466045)	51.487994	-0.246605
+2761	CITY ROAD	2.468340e+06	(51.5296972, -0.0977626)	51.529697	-0.097763
+2808	CLARENDON STREET	2.250000e+06	(42.2849611, -71.3455345)	42.284961	-71.345534
+...	...	...	...	...	...
+10935	RUSSELL GARDENS MEWS	2.300000e+06	(51.4999175, -0.2119443)	51.499918	-0.211944
+11182	SETTLES STREET	2.487500e+06	(32.2394242, -101.4571232)	32.239424	-101.457123
+11257	SHELDON AVENUE	2.349542e+06	(42.0209245, -93.6542243)	42.020924	-93.654224
+11491	SOUTH END ROW	2.470000e+06	(51.4987463, -0.1890787)	51.498746	-0.189079
+11568	SOUTHWOOD LAWN ROAD	2.350000e+06	(51.5746267, -0.146238)	51.574627	-0.146238
+11571	SOVEREIGN PARK	2.500000e+06	(-27.49371345, 153.21014259876813)	-27.493713	153.210143
+11788	ST MARGARETS CRESCENT	2.216500e+06	(17.0975135, -88.6161153)	17.097514	-88.616115
+11824	ST OSWALDS PLACE	2.250000e+06	(51.4872071, -0.1185341)	51.487207	-0.118534
+11844	ST PETERS SQUARE	2.468730e+06	(41.9022353, 12.457357310298008)	41.902235	12.457357
+11881	STAFFORD TERRACE	2.355000e+06	(53.680501, -1.5183383)	53.680501	-1.518338
+12221	SUTHERLAND PLACE	2.456000e+06	(51.8711375, -0.4228998)	51.871138	-0.422900
+12283	SYDNEY STREET	2.240833e+06	(-29.823972, 30.9192479)	-29.823972	30.919248
+12425	THAMES BANK	2.400000e+06	(52.0856689, -0.2432764)	52.085669	-0.243276
+12487	THE HEXAGON	2.335000e+06	(51.45388235, -0.9778342181052991)	51.453882	-0.977834
+12766	TREDEGAR SQUARE	2.436666e+06	(51.5270935, -0.03218423325966063)	51.527093	-0.032184
+12828	TRINITY STREET	2.317500e+06	(50.3383163, -4.7954295)	50.338316	-4.795430
+12978	UPPER HAMPSTEAD WALK	2.500000e+06	(51.558467, -0.1774529)	51.558467	-0.177453
+13240	WALPOLE GARDENS	2.303500e+06	(51.4397435, -0.3412634)	51.439743	-0.341263
+13242	WALPOLE STREET	2.242500e+06	(-27.8725844, 151.2717768)	-27.872584	151.271777
+13316	WARWICK SQUARE	2.432273e+06	(33.7385632, -117.84650567746482)	33.738563	-117.846506
+13415	WELBECK WAY	2.267000e+06	(52.5580053, -0.262309)	52.558005	-0.262309
+13427	WELLESLEY TERRACE	2.410000e+06	(54.9743127, -1.6402018)	54.974313	-1.640202
+13438	WELLINGTON STREET	2.293155e+06	(45.4234495, -75.6980579)	45.423449	-75.698058
+13570	WESTMORELAND PLACE	2.300000e+06	(40.7402242, -111.8463235)	40.740224	-111.846323
+13677	WHITFIELD STREET	2.451000e+06	(-12.4607263, 130.8395852)	-12.460726	130.839585
+13722	WILFRED STREET	2.410538e+06	(51.442178, 0.372743)	51.442178	0.372743
+13748	WILLOW BRIDGE ROAD	2.425000e+06	(53.6408743, -1.2004617)	53.640874	-1.200462
+13768	WILSON STREET	2.257500e+06	(42.766462, -71.099469)	42.766462	-71.099469
+13796	WINCHENDON ROAD	2.350000e+06	(42.645331, -71.954714)	42.645331	-71.954714
+13833	WINGATE ROAD	2.206400e+06	(51.092557, 1.1794554)	51.092557	1.179455
+162 rows × 5 columns
+
+In [21]:
+df = df_affordable.drop(columns=['city_coord'])
+df
+Out[21]:
+Street	Avg_Price	Latitude	Longitude
+196	ALBION SQUARE	2.450000e+06	-41.273758	173.289393
+390	ANHALT ROAD	2.435000e+06	51.480316	-0.166801
+405	ANSDELL TERRACE	2.250000e+06	51.499890	-0.189103
+422	APPLEGARTH ROAD	2.400000e+06	53.748654	-0.326670
+855	BARONSMEAD ROAD	2.375000e+06	51.477315	-0.239457
+981	BEAUCLERC ROAD	2.480000e+06	30.211452	-81.617981
+1102	BELVEDERE DRIVE	2.340000e+06	38.072818	-78.458796
+1215	BICKENHALL STREET	2.208500e+06	51.521201	-0.158908
+1253	BIRCHLANDS AVENUE	2.217000e+06	51.448394	-0.160468
+1553	BRAMPTON GROVE	2.456875e+06	51.589961	-0.318525
+1632	BRIARDALE GARDENS	2.397132e+06	51.560175	-0.195431
+1797	BROOKWAY	2.400000e+06	45.432185	-122.802812
+1914	BURBAGE ROAD	2.445000e+06	52.538507	-1.353674
+1980	BURY WALK	2.492500e+06	52.145529	-0.423593
+2068	CALLCOTT STREET	2.375000e+06	51.508350	-0.198328
+2129	CAMPDEN HILL ROAD	2.379653e+06	51.508111	-0.199667
+2136	CAMPION ROAD	2.461000e+06	43.623321	-70.236225
+2158	CANNING PLACE	2.425000e+06	51.499494	-0.185481
+2225	CARLISLE ROAD	2.200000e+06	43.399438	-79.973215
+2230	CARLTON GARDENS	2.483500e+06	-37.801943	144.971970
+2242	CARLYLE COURT	2.300000e+06	32.972701	-97.173392
+2406	CHALCOT SQUARE	2.286679e+06	51.541088	-0.155928
+2484	CHARLES LANE	2.414000e+06	40.257626	-75.093891
+2562	CHELSEA CRESCENT	2.495000e+06	34.522443	-85.443891
+2606	CHESTER CLOSE NORTH	2.450000e+06	51.529205	-0.145081
+2638	CHEYNE COURT	2.250000e+06	52.035905	0.727612
+2641	CHEYNE ROW	2.410000e+06	51.483717	-0.169603
+2686	CHISWICK MALL	2.287500e+06	51.487994	-0.246605
+2761	CITY ROAD	2.468340e+06	51.529697	-0.097763
+2808	CLARENDON STREET	2.250000e+06	42.284961	-71.345534
+...	...	...	...	...
+10935	RUSSELL GARDENS MEWS	2.300000e+06	51.499918	-0.211944
+11182	SETTLES STREET	2.487500e+06	32.239424	-101.457123
+11257	SHELDON AVENUE	2.349542e+06	42.020924	-93.654224
+11491	SOUTH END ROW	2.470000e+06	51.498746	-0.189079
+11568	SOUTHWOOD LAWN ROAD	2.350000e+06	51.574627	-0.146238
+11571	SOVEREIGN PARK	2.500000e+06	-27.493713	153.210143
+11788	ST MARGARETS CRESCENT	2.216500e+06	17.097514	-88.616115
+11824	ST OSWALDS PLACE	2.250000e+06	51.487207	-0.118534
+11844	ST PETERS SQUARE	2.468730e+06	41.902235	12.457357
+11881	STAFFORD TERRACE	2.355000e+06	53.680501	-1.518338
+12221	SUTHERLAND PLACE	2.456000e+06	51.871138	-0.422900
+12283	SYDNEY STREET	2.240833e+06	-29.823972	30.919248
+12425	THAMES BANK	2.400000e+06	52.085669	-0.243276
+12487	THE HEXAGON	2.335000e+06	51.453882	-0.977834
+12766	TREDEGAR SQUARE	2.436666e+06	51.527093	-0.032184
+12828	TRINITY STREET	2.317500e+06	50.338316	-4.795430
+12978	UPPER HAMPSTEAD WALK	2.500000e+06	51.558467	-0.177453
+13240	WALPOLE GARDENS	2.303500e+06	51.439743	-0.341263
+13242	WALPOLE STREET	2.242500e+06	-27.872584	151.271777
+13316	WARWICK SQUARE	2.432273e+06	33.738563	-117.846506
+13415	WELBECK WAY	2.267000e+06	52.558005	-0.262309
+13427	WELLESLEY TERRACE	2.410000e+06	54.974313	-1.640202
+13438	WELLINGTON STREET	2.293155e+06	45.423449	-75.698058
+13570	WESTMORELAND PLACE	2.300000e+06	40.740224	-111.846323
+13677	WHITFIELD STREET	2.451000e+06	-12.460726	130.839585
+13722	WILFRED STREET	2.410538e+06	51.442178	0.372743
+13748	WILLOW BRIDGE ROAD	2.425000e+06	53.640874	-1.200462
+13768	WILSON STREET	2.257500e+06	42.766462	-71.099469
+13796	WINCHENDON ROAD	2.350000e+06	42.645331	-71.954714
+13833	WINGATE ROAD	2.206400e+06	51.092557	1.179455
+162 rows × 4 columns
+
+In [22]:
+address = 'London, UK'
+
+geolocator = Nominatim()
+location = geolocator.geocode(address)
+latitude = location.latitude
+longitude = location.longitude
+print('The geograpical coordinate of London City are {}, {}.'.format(latitude, longitude))
+The geograpical coordinate of London City are 51.5073219, -0.1276474.
+/opt/conda/envs/Python36/lib/python3.6/site-packages/ipykernel/__main__.py:3: DeprecationWarning: Using Nominatim with the default "geopy/1.22.0" `user_agent` is strongly discouraged, as it violates Nominatim's ToS https://operations.osmfoundation.org/policies/nominatim/ and may possibly cause 403 and 429 HTTP errors. Please specify a custom `user_agent` with `Nominatim(user_agent="my-application")` or by overriding the default `user_agent`: `geopy.geocoders.options.default_user_agent = "my-application"`. In geopy 2.0 this will become an exception.
+  app.launch_new_instance()
+In [23]:
+# create map of London using latitude and longitude values
+map_london = folium.Map(location=[latitude, longitude], zoom_start=11)
+# add markers to map
+for lat, lng, price, street in zip(df['Latitude'], df['Longitude'], df['Avg_Price'], df['Street']):
+    label = '{}, {}'.format(street, price)
+    label = folium.Popup(label, parse_html=True)
+    folium.CircleMarker(
+        [lat, lng],
+        radius=5,
+        popup=label,
+        color='blue',
+        fill=True,
+        fill_color='#3186cc',
+        fill_opacity=0.7,
+        parse_html=False).add_to(map_london)  
+    
+map_london
+Out[23]:
+Make this Notebook Trusted to load map: File -> Trust Notebook
+In [30]:
+CLIENT_ID = 'GYQOZXPA0JNP1YNP1AJ3FZCHCPH3TIWAO3GQSSBJBSRO4UW5' # Foursquare ID
+CLIENT_SECRET = 'SC301OAQBSBFLZDVOFR5MVUXRP0JQVPZZXZ3LHXI4CXJZTBS' # Foursquare Secret
+VERSION = '20200612' # Foursquare API version
+print('done')
+done
+Modeling
+In [32]:
+def getNearbyVenues(names, latitudes, longitudes, radius=500, LIMIT=100):
+    
+    venues_list=[]
+    for name, lat, lng in zip(names, latitudes, longitudes):
+        print(name)
+            
+        # create the API request URL
+        url = 'https://api.foursquare.com/v2/venues/explore?&client_id={}&client_secret={}&v={}&ll={},{}&radius={}&limit={}'.format(
+            CLIENT_ID, 
+            CLIENT_SECRET, 
+            VERSION, 
+            lat, 
+            lng, 
+            radius, 
+            LIMIT)
+            
+        # make the GET request
+        results = requests.get(url).json()["response"]['groups'][0]['items']
+        
+        # return only relevant information for each nearby venue
+        venues_list.append([(
+            name, 
+            lat, 
+            lng, 
+            v['venue']['name'], 
+            v['venue']['location']['lat'], 
+            v['venue']['location']['lng'],  
+            v['venue']['categories'][0]['name']) for v in results])
+
+    nearby_venues = pd.DataFrame([item for venue_list in venues_list for item in venue_list])
+    nearby_venues.columns = ['Street', 
+                  'Street Latitude', 
+                  'Street Longitude', 
+                  'Venue', 
+                  'Venue Latitude', 
+                  'Venue Longitude', 
+                  'Venue Category']
+    
+    return(nearby_venues)
+print('done')
+done
+In [33]:
+# Run the above function on each location and create a new dataframe called location_venues and display it.
+location_venues = getNearbyVenues(names=df['Street'],
+                                   latitudes=df['Latitude'],
+                                   longitudes=df['Longitude']) 
+print('done')
+ALBION SQUARE
+ANHALT ROAD
+ANSDELL TERRACE
+APPLEGARTH ROAD
+BARONSMEAD ROAD
+BEAUCLERC ROAD
+BELVEDERE DRIVE
+BICKENHALL STREET
+BIRCHLANDS AVENUE
+BRAMPTON GROVE
+BRIARDALE GARDENS
+BROOKWAY
+BURBAGE ROAD
+BURY WALK
+CALLCOTT STREET
+CAMPDEN HILL ROAD
+CAMPION ROAD
+CANNING PLACE
+CARLISLE ROAD
+CARLTON GARDENS
+CARLYLE COURT
+CHALCOT SQUARE
+CHARLES LANE
+CHELSEA CRESCENT
+CHESTER CLOSE NORTH
+CHEYNE COURT
+CHEYNE ROW
+CHISWICK MALL
+CITY ROAD
+CLARENDON STREET
+CLONCURRY STREET
+COLBECK MEWS
+COLLEGE CRESCENT
+CORNWALL TERRACE MEWS
+COURT LANE GARDENS
+CRESCENT GROVE
+DALEBURY ROAD
+DEWHURST ROAD
+DORIA ROAD
+DOWNSHIRE HILL
+DUCHESS WALK
+ECCLESTON SQUARE MEWS
+EGBERT STREET
+EGERTON PLACE
+ELM PARK ROAD
+FLORAL STREET
+FRANK DIXON WAY
+FULTON MEWS
+GERARD ROAD
+GERRARD ROAD
+GIRDLERS ROAD
+GLOUCESTER CRESCENT
+GORDON PLACE
+GRAFTON SQUARE
+GRAHAM TERRACE
+HARMAN DRIVE
+HARRIS STREET
+HAVANNAH STREET
+HAZLEWELL ROAD
+HEREFORD MEWS
+HERONDALE AVENUE
+HIGHGATE HIGH STREET
+HIGHWOOD HILL
+HILLGATE PLACE
+HOLLYCROFT AVENUE
+HOLLYWOOD MEWS
+HONEYWELL ROAD
+HORTENSIA ROAD
+HOXTON SQUARE
+HUNTER ROAD
+JACKSONS LANE
+JOHN STREET
+KINNERTON STREET
+KNARESBOROUGH PLACE
+KNOX STREET
+LADBROKE GROVE
+LANCASTER MEWS
+LANSDOWNE ROAD
+LATIMER INDUSTRIAL ESTATE
+LAXTON PLACE
+LINCOLN AVENUE
+LINGFIELD ROAD
+LISSON STREET
+LIVERPOOL GROVE
+LONGWOOD DRIVE
+LONSDALE SQUARE
+MAZE HILL
+MIDDLESEX PASSAGE
+MONTPELIER AVENUE
+MONTPELIER WALK
+MULTON ROAD
+MUNDEN STREET
+NORFOLK CRESCENT
+NORTH CIRCULAR ROAD
+NOTTINGHAM STREET
+OAKLEY STREET
+OAKWOOD COURT
+OBSERVATORY GARDENS
+OLD COURT PLACE
+ONSLOW MEWS WEST
+PALACE PLACE
+PANTON STREET
+PARK CRESCENT
+PARK LANE
+PARKE ROAD
+PARKFIELDS
+PARTHENIA ROAD
+PAVILION ROAD
+PEMBRIDGE MEWS
+PEMBRIDGE ROAD
+PEMBROKE STUDIOS
+PENCOMBE MEWS
+PETERSHAM PLACE
+PHILLIMORE GARDENS
+PHYSIC PLACE
+PITFIELD STREET
+PRINCES GATE
+PRIORY ROAD
+PROTHERO GARDENS
+PUTNEY HIGH STREET
+QUARRENDON STREET
+QUEENS GATE TERRACE
+RADSTOCK STREET
+RANELAGH AVENUE
+REDCLIFFE ROAD
+REEVES MEWS
+RHEIDOL MEWS
+RINGWOOD AVENUE
+RODERICK ROAD
+ROPEMAKERS FIELDS
+ROYAL CRESCENT
+ROYAL HILL
+RUSSELL GARDENS MEWS
+SETTLES STREET
+SHELDON AVENUE
+SOUTH END ROW
+SOUTHWOOD LAWN ROAD
+SOVEREIGN PARK
+ST MARGARETS CRESCENT
+ST OSWALDS PLACE
+ST PETERS SQUARE
+STAFFORD TERRACE
+SUTHERLAND PLACE
+SYDNEY STREET
+THAMES BANK
+THE HEXAGON
+TREDEGAR SQUARE
+TRINITY STREET
+UPPER HAMPSTEAD WALK
+WALPOLE GARDENS
+WALPOLE STREET
+WARWICK SQUARE
+WELBECK WAY
+WELLESLEY TERRACE
+WELLINGTON STREET
+WESTMORELAND PLACE
+WHITFIELD STREET
+WILFRED STREET
+WILLOW BRIDGE ROAD
+WILSON STREET
+WINCHENDON ROAD
+WINGATE ROAD
+done
+In [34]:
+location_venues
+Out[34]:
+Street	Street Latitude	Street Longitude	Venue	Venue Latitude	Venue Longitude	Venue Category
+0	ALBION SQUARE	-41.273758	173.289393	The Free House	-41.273340	173.287364	Bar
+1	ALBION SQUARE	-41.273758	173.289393	The Indian Cafe	-41.273308	173.286530	Indian Restaurant
+2	ALBION SQUARE	-41.273758	173.289393	Queen's Gardens	-41.273671	173.291383	Park
+3	ALBION SQUARE	-41.273758	173.289393	Urban	-41.274355	173.286317	New American Restaurant
+4	ALBION SQUARE	-41.273758	173.289393	Fish Stop	-41.276010	173.289592	Fish & Chips Shop
+5	ALBION SQUARE	-41.273758	173.289393	Deville Cafe	-41.271941	173.285535	Beer Garden
+6	ALBION SQUARE	-41.273758	173.289393	Fresh Choice	-41.272194	173.287218	Supermarket
+7	ALBION SQUARE	-41.273758	173.289393	The Bridge Street Collective	-41.272520	173.285517	Café
+8	ALBION SQUARE	-41.273758	173.289393	Mango	-41.274460	173.285345	Indian Restaurant
+9	ALBION SQUARE	-41.273758	173.289393	Hopgood's	-41.274749	173.283831	Restaurant
+10	ALBION SQUARE	-41.273758	173.289393	The Vic Mac's Brew Bar	-41.274757	173.283914	Pub
+11	ALBION SQUARE	-41.273758	173.289393	The Kitchen	-41.272360	173.285500	Café
+12	ALBION SQUARE	-41.273758	173.289393	cod and lobster	-41.275203	173.283747	Seafood Restaurant
+13	ALBION SQUARE	-41.273758	173.289393	Burger Culture	-41.274750	173.284030	Burger Joint
+14	ALBION SQUARE	-41.273758	173.289393	Sprig & Fern	-41.274508	173.286527	Brewery
+15	ALBION SQUARE	-41.273758	173.289393	Columbus Coffee	-41.274759	173.285391	Coffee Shop
+16	ALBION SQUARE	-41.273758	173.289393	La Gourmandise	-41.274262	173.286211	French Restaurant
+17	ALBION SQUARE	-41.273758	173.289393	Lambretta's Cafe & Bar	-41.274372	173.284462	Café
+18	ALBION SQUARE	-41.273758	173.289393	Ford's Restaurant & Bar	-41.274637	173.283851	Restaurant
+19	ALBION SQUARE	-41.273758	173.289393	Morrison Street Cafe	-41.274505	173.285461	Café
+20	ALBION SQUARE	-41.273758	173.289393	Suter Art Gallery	-41.273665	173.291377	Art Gallery
+21	ALBION SQUARE	-41.273758	173.289393	7010	-41.270045	173.286959	Café
+22	ALBION SQUARE	-41.273758	173.289393	Robert Harris Coffee	-41.272941	173.283876	Café
+23	ALBION SQUARE	-41.273758	173.289393	The Nelson Provincial Museum	-41.274486	173.283911	Museum
+24	ALBION SQUARE	-41.273758	173.289393	623 In the City	-41.274049	173.285020	Bar
+25	ALBION SQUARE	-41.273758	173.289393	The Prince Albert	-41.276275	173.290930	Pub
+26	ALBION SQUARE	-41.273758	173.289393	Starbucks	-41.273502	173.283919	Coffee Shop
+27	ANHALT ROAD	51.480316	-0.166801	Bayley & Sage	51.479074	-0.167052	Grocery Store
+28	ANHALT ROAD	51.480316	-0.166801	Nutbourne	51.479305	-0.168169	English Restaurant
+29	ANHALT ROAD	51.480316	-0.166801	The Prince Albert	51.479602	-0.165586	Pub
+...	...	...	...	...	...	...	...
+4440	WILFRED STREET	51.442178	0.372743	Subway	51.442881	0.369241	Sandwich Place
+4441	WILFRED STREET	51.442178	0.372743	Primark	51.442708	0.368937	Clothing Store
+4442	WILFRED STREET	51.442178	0.372743	Greggs	51.442294	0.367571	Bakery
+4443	WILFRED STREET	51.442178	0.372743	wilko	51.441553	0.368395	Furniture / Home Store
+4444	WILFRED STREET	51.442178	0.372743	Domino's Pizza	51.444586	0.368718	Pizza Place
+4445	WILFRED STREET	51.442178	0.372743	Debenhams	51.441885	0.367314	Department Store
+4446	WILFRED STREET	51.442178	0.372743	Burger King	51.442415	0.368200	Fast Food Restaurant
+4447	WILFRED STREET	51.442178	0.372743	Costa Coffee	51.442540	0.369174	Coffee Shop
+4448	WILFRED STREET	51.442178	0.372743	WHSmith	51.443151	0.366932	Stationery Store
+4449	WILFRED STREET	51.442178	0.372743	Fort Gardens	51.443255	0.377269	Park
+4450	WILFRED STREET	51.442178	0.372743	McDonald's	51.442460	0.368880	Fast Food Restaurant
+4451	WILFRED STREET	51.442178	0.372743	The Goose	51.442163	0.370329	Pub
+4452	WILFRED STREET	51.442178	0.372743	Gravesend Borough Market	51.443302	0.370622	Market
+4453	WILFRED STREET	51.442178	0.372743	Reliance Fish Restaurant	51.442285	0.371174	Fish & Chips Shop
+4454	WILFRED STREET	51.442178	0.372743	Thamesgate Shopping Centre	51.442153	0.368174	Shopping Mall
+4455	WILFRED STREET	51.442178	0.372743	The Rum Puncheon	51.444802	0.368413	Pub
+4456	WILFRED STREET	51.442178	0.372743	The Compass Ale House	51.439667	0.370156	Pub
+4457	WILFRED STREET	51.442178	0.372743	Twin Dynasty	51.439467	0.369286	Asian Restaurant
+4458	WILFRED STREET	51.442178	0.372743	Pocahontas Statue	51.443982	0.367972	Outdoor Sculpture
+4459	WILFRED STREET	51.442178	0.372743	Tufail	51.438295	0.372233	Indian Restaurant
+4460	WILFRED STREET	51.442178	0.372743	Gordon Promenade	51.444013	0.378485	Waterfront
+4461	WILSON STREET	42.766462	-71.099469	7-Eleven	42.765533	-71.100436	Convenience Store
+4462	WILSON STREET	42.766462	-71.099469	Smart Pizza	42.765648	-71.099022	Pizza Place
+4463	WILSON STREET	42.766462	-71.099469	Giovanis	42.764864	-71.102764	Pizza Place
+4464	WILSON STREET	42.766462	-71.099469	Vaporlicious Inc.	42.764570	-71.102665	Smoke Shop
+4465	WILSON STREET	42.766462	-71.099469	Jj's Kabobs And Pizzeria	42.766157	-71.103679	Pizza Place
+4466	WINGATE ROAD	51.092557	1.179455	Currys PC World	51.093848	1.179104	Electronics Store
+4467	WINGATE ROAD	51.092557	1.179455	The Hungry Horse	51.089400	1.180624	Gastropub
+4468	WINGATE ROAD	51.092557	1.179455	Nisa Local	51.095157	1.184555	Supermarket
+4469	WINGATE ROAD	51.092557	1.179455	Booker	51.092661	1.172383	Warehouse Store
+4470 rows × 7 columns
+
+In [35]:
+location_venues.groupby('Street').count()
+Out[35]:
+Street Latitude	Street Longitude	Venue	Venue Latitude	Venue Longitude	Venue Category
+Street						
+ALBION SQUARE	27	27	27	27	27	27
+ANHALT ROAD	16	16	16	16	16	16
+ANSDELL TERRACE	46	46	46	46	46	46
+APPLEGARTH ROAD	4	4	4	4	4	4
+BARONSMEAD ROAD	14	14	14	14	14	14
+BEAUCLERC ROAD	4	4	4	4	4	4
+BELVEDERE DRIVE	3	3	3	3	3	3
+BICKENHALL STREET	63	63	63	63	63	63
+BIRCHLANDS AVENUE	9	9	9	9	9	9
+BRAMPTON GROVE	2	2	2	2	2	2
+BRIARDALE GARDENS	5	5	5	5	5	5
+BURBAGE ROAD	5	5	5	5	5	5
+BURY WALK	15	15	15	15	15	15
+CALLCOTT STREET	51	51	51	51	51	51
+CAMPDEN HILL ROAD	46	46	46	46	46	46
+CAMPION ROAD	3	3	3	3	3	3
+CANNING PLACE	47	47	47	47	47	47
+CARLTON GARDENS	64	64	64	64	64	64
+CARLYLE COURT	1	1	1	1	1	1
+CHALCOT SQUARE	53	53	53	53	53	53
+CHARLES LANE	2	2	2	2	2	2
+CHESTER CLOSE NORTH	24	24	24	24	24	24
+CHEYNE COURT	12	12	12	12	12	12
+CHEYNE ROW	59	59	59	59	59	59
+CHISWICK MALL	7	7	7	7	7	7
+CITY ROAD	28	28	28	28	28	28
+CLARENDON STREET	33	33	33	33	33	33
+CLONCURRY STREET	29	29	29	29	29	29
+COLBECK MEWS	100	100	100	100	100	100
+COLLEGE CRESCENT	16	16	16	16	16	16
+...	...	...	...	...	...	...
+RODERICK ROAD	7	7	7	7	7	7
+ROPEMAKERS FIELDS	25	25	25	25	25	25
+ROYAL CRESCENT	23	23	23	23	23	23
+RUSSELL GARDENS MEWS	25	25	25	25	25	25
+SETTLES STREET	4	4	4	4	4	4
+SHELDON AVENUE	38	38	38	38	38	38
+SOUTH END ROW	49	49	49	49	49	49
+SOUTHWOOD LAWN ROAD	32	32	32	32	32	32
+SOVEREIGN PARK	3	3	3	3	3	3
+ST OSWALDS PLACE	41	41	41	41	41	41
+ST PETERS SQUARE	78	78	78	78	78	78
+STAFFORD TERRACE	6	6	6	6	6	6
+SUTHERLAND PLACE	3	3	3	3	3	3
+SYDNEY STREET	3	3	3	3	3	3
+THAMES BANK	4	4	4	4	4	4
+THE HEXAGON	37	37	37	37	37	37
+TREDEGAR SQUARE	25	25	25	25	25	25
+TRINITY STREET	16	16	16	16	16	16
+UPPER HAMPSTEAD WALK	60	60	60	60	60	60
+WALPOLE GARDENS	9	9	9	9	9	9
+WALPOLE STREET	1	1	1	1	1	1
+WARWICK SQUARE	4	4	4	4	4	4
+WELBECK WAY	1	1	1	1	1	1
+WELLESLEY TERRACE	10	10	10	10	10	10
+WELLINGTON STREET	89	89	89	89	89	89
+WESTMORELAND PLACE	17	17	17	17	17	17
+WHITFIELD STREET	47	47	47	47	47	47
+WILFRED STREET	26	26	26	26	26	26
+WILSON STREET	5	5	5	5	5	5
+WINGATE ROAD	4	4	4	4	4	4
+150 rows × 6 columns
+
+In [36]:
+# get the List of Unique Categories
+print('There are {} uniques categories.'.format(len(location_venues['Venue Category'].unique())))
+There are 345 uniques categories.
+In [37]:
+location_venues.shape
+Out[37]:
+(4470, 7)
+In [38]:
+# one hot encoding
+venues_onehot = pd.get_dummies(location_venues[['Venue Category']], prefix="", prefix_sep="")
+
+# add street column back to dataframe
+venues_onehot['Street'] = location_venues['Street'] 
+
+# move street column to the first column
+fixed_columns = [venues_onehot.columns[-1]] + list(venues_onehot.columns[:-1])
+
+#fixed_columns
+venues_onehot = venues_onehot[fixed_columns]
+
+venues_onehot.head()
+Out[38]:
+Street	Accessories Store	Adult Boutique	Afghan Restaurant	African Restaurant	American Restaurant	Antique Shop	Arcade	Argentinian Restaurant	Art Gallery	...	Vietnamese Restaurant	Warehouse Store	Waterfront	Weight Loss Center	Wine Bar	Wine Shop	Women's Store	Yoga Studio	Zoo	Zoo Exhibit
+0	ALBION SQUARE	0	0	0	0	0	0	0	0	0	...	0	0	0	0	0	0	0	0	0	0
+1	ALBION SQUARE	0	0	0	0	0	0	0	0	0	...	0	0	0	0	0	0	0	0	0	0
+2	ALBION SQUARE	0	0	0	0	0	0	0	0	0	...	0	0	0	0	0	0	0	0	0	0
+3	ALBION SQUARE	0	0	0	0	0	0	0	0	0	...	0	0	0	0	0	0	0	0	0	0
+4	ALBION SQUARE	0	0	0	0	0	0	0	0	0	...	0	0	0	0	0	0	0	0	0	0
+5 rows × 346 columns
+
+In [39]:
+london_grouped = venues_onehot.groupby('Street').mean().reset_index()
+london_grouped
+Out[39]:
+Street	Accessories Store	Adult Boutique	Afghan Restaurant	African Restaurant	American Restaurant	Antique Shop	Arcade	Argentinian Restaurant	Art Gallery	...	Vietnamese Restaurant	Warehouse Store	Waterfront	Weight Loss Center	Wine Bar	Wine Shop	Women's Store	Yoga Studio	Zoo	Zoo Exhibit
+0	ALBION SQUARE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.037037	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+1	ANHALT ROAD	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.062500	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+2	ANSDELL TERRACE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.021739	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+3	APPLEGARTH ROAD	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+4	BARONSMEAD ROAD	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+5	BEAUCLERC ROAD	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+6	BELVEDERE DRIVE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+7	BICKENHALL STREET	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.015873	0.00	0.000000	0.0	0.015873	0.00000	0.015873	0.015873	0.000000	0.0
+8	BIRCHLANDS AVENUE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+9	BRAMPTON GROVE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+10	BRIARDALE GARDENS	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+11	BURBAGE ROAD	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+12	BURY WALK	0.000000	0.0	0.0	0.0	0.066667	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+13	CALLCOTT STREET	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.019608	0.00000	0.000000	0.039216	0.000000	0.0
+14	CAMPDEN HILL ROAD	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.021739	0.00000	0.000000	0.043478	0.000000	0.0
+15	CAMPION ROAD	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+16	CANNING PLACE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.021277	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+17	CARLTON GARDENS	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.031250	0.00000	0.000000	0.000000	0.000000	0.0
+18	CARLYLE COURT	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+19	CHALCOT SQUARE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.018868	0.000000	0.0
+20	CHARLES LANE	0.000000	0.0	0.0	0.0	0.500000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+21	CHESTER CLOSE NORTH	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.041667	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+22	CHEYNE COURT	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+23	CHEYNE ROW	0.016949	0.0	0.0	0.0	0.016949	0.0	0.000000	0.000000	0.016949	...	0.016949	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.016949	0.000000	0.0
+24	CHISWICK MALL	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+25	CITY ROAD	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.107143	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+26	CLARENDON STREET	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.030303	0.000000	0.0
+27	CLONCURRY STREET	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.034483	...	0.000000	0.00	0.034483	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+28	COLBECK MEWS	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.010000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+29	COLLEGE CRESCENT	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...
+120	RODERICK ROAD	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+121	ROPEMAKERS FIELDS	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+122	ROYAL CRESCENT	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+123	RUSSELL GARDENS MEWS	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+124	SETTLES STREET	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+125	SHELDON AVENUE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.026316	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+126	SOUTH END ROW	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.020408	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+127	SOUTHWOOD LAWN ROAD	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+128	SOVEREIGN PARK	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+129	ST OSWALDS PLACE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.024390	...	0.000000	0.00	0.000000	0.0	0.000000	0.02439	0.000000	0.000000	0.000000	0.0
+130	ST PETERS SQUARE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.038462	...	0.000000	0.00	0.000000	0.0	0.025641	0.00000	0.000000	0.000000	0.000000	0.0
+131	STAFFORD TERRACE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+132	SUTHERLAND PLACE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+133	SYDNEY STREET	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+134	THAMES BANK	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+135	THE HEXAGON	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.027027	0.00000	0.000000	0.000000	0.000000	0.0
+136	TREDEGAR SQUARE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.040000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+137	TRINITY STREET	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+138	UPPER HAMPSTEAD WALK	0.000000	0.0	0.0	0.0	0.016667	0.0	0.000000	0.016667	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.016667	0.000000	0.000000	0.0
+139	WALPOLE GARDENS	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+140	WALPOLE STREET	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+141	WARWICK SQUARE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+142	WELBECK WAY	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	1.000000	0.000000	0.0
+143	WELLESLEY TERRACE	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+144	WELLINGTON STREET	0.000000	0.0	0.0	0.0	0.011236	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+145	WESTMORELAND PLACE	0.000000	0.0	0.0	0.0	0.058824	0.0	0.000000	0.000000	0.058824	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+146	WHITFIELD STREET	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.021277	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.021277	0.0
+147	WILFRED STREET	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.038462	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+148	WILSON STREET	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.00	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+149	WINGATE ROAD	0.000000	0.0	0.0	0.0	0.000000	0.0	0.000000	0.000000	0.000000	...	0.000000	0.25	0.000000	0.0	0.000000	0.00000	0.000000	0.000000	0.000000	0.0
+150 rows × 346 columns
+
+In [40]:
+london_grouped.shape
+Out[40]:
+(150, 346)
+In [41]:
+# What are the top 5 venues/facilities nearby profitable real estate investments?#
+
+num_top_venues = 5
+
+for hood in london_grouped['Street']:
+    print("----"+hood+"----")
+    temp = london_grouped[london_grouped['Street'] == hood].T.reset_index()
+    temp.columns = ['venue','freq']
+    temp = temp.iloc[1:]
+    temp['freq'] = temp['freq'].astype(float)
+    temp = temp.round({'freq': 2})
+    print(temp.sort_values('freq', ascending=False).reset_index(drop=True).head(num_top_venues))
+    print('\n')
+----ALBION SQUARE----
+         venue  freq
+0         Café  0.22
+1          Bar  0.07
+2          Pub  0.07
+3  Coffee Shop  0.07
+4   Restaurant  0.07
+
+
+----ANHALT ROAD----
+                  venue  freq
+0                   Pub  0.25
+1     French Restaurant  0.12
+2         Grocery Store  0.12
+3  Gym / Fitness Center  0.06
+4                 Plaza  0.06
+
+
+----ANSDELL TERRACE----
+            venue  freq
+0  Clothing Store  0.09
+1      Restaurant  0.09
+2             Pub  0.07
+3           Hotel  0.07
+4       Juice Bar  0.07
+
+
+----APPLEGARTH ROAD----
+                   venue  freq
+0                    Bar  0.25
+1         Sandwich Place  0.25
+2                 Casino  0.25
+3              Nightclub  0.25
+4  Portuguese Restaurant  0.00
+
+
+----BARONSMEAD ROAD----
+             venue  freq
+0  Nature Preserve  0.07
+1       Restaurant  0.07
+2  Thai Restaurant  0.07
+3             Park  0.07
+4      Coffee Shop  0.07
+
+
+----BEAUCLERC ROAD----
+               venue  freq
+0                Spa  0.25
+1    Automotive Shop  0.25
+2        Pizza Place  0.25
+3    Harbor / Marina  0.25
+4  Accessories Store  0.00
+
+
+----BELVEDERE DRIVE----
+               venue  freq
+0         Playground  0.67
+1               Pool  0.33
+2  Accessories Store  0.00
+3  Outdoor Sculpture  0.00
+4        Pastry Shop  0.00
+
+
+----BICKENHALL STREET----
+                venue  freq
+0                Café  0.08
+1          Restaurant  0.05
+2               Hotel  0.05
+3         Pizza Place  0.05
+4  Italian Restaurant  0.05
+
+
+----BIRCHLANDS AVENUE----
+                venue  freq
+0                 Pub  0.22
+1  Chinese Restaurant  0.11
+2   French Restaurant  0.11
+3             Brewery  0.11
+4              Bakery  0.11
+
+
+----BRAMPTON GROVE----
+                   venue  freq
+0           Food Service   0.5
+1           Home Service   0.5
+2      Accessories Store   0.0
+3  Outdoors & Recreation   0.0
+4       Pedestrian Plaza   0.0
+
+
+----BRIARDALE GARDENS----
+                  venue  freq
+0   Sporting Goods Shop   0.2
+1        Breakfast Spot   0.2
+2  Gym / Fitness Center   0.2
+3         Grocery Store   0.2
+4           Coffee Shop   0.2
+
+
+----BURBAGE ROAD----
+                venue  freq
+0  Athletics & Sports   0.2
+1        Dance Studio   0.2
+2                 Bar   0.2
+3                 Gym   0.2
+4       Grocery Store   0.2
+
+
+----BURY WALK----
+                  venue  freq
+0           Supermarket  0.20
+1    English Restaurant  0.13
+2                   Pub  0.07
+3  Fast Food Restaurant  0.07
+4                   Gym  0.07
+
+
+----CALLCOTT STREET----
+               venue  freq
+0                Pub  0.14
+1               Park  0.06
+2  Indian Restaurant  0.04
+3              Hotel  0.04
+4      Grocery Store  0.04
+
+
+----CAMPDEN HILL ROAD----
+           venue  freq
+0            Pub  0.13
+1  Grocery Store  0.07
+2    Coffee Shop  0.04
+3    Yoga Studio  0.04
+4         Bakery  0.04
+
+
+----CAMPION ROAD----
+                  venue  freq
+0                   Pub  0.33
+1                 Trail  0.33
+2                  Food  0.33
+3  Outdoor Supply Store  0.00
+4           Pastry Shop  0.00
+
+
+----CANNING PLACE----
+                venue  freq
+0               Hotel  0.17
+1  Italian Restaurant  0.06
+2           Juice Bar  0.06
+3          Restaurant  0.06
+4                 Pub  0.04
+
+
+----CARLTON GARDENS----
+                venue  freq
+0  Italian Restaurant  0.27
+1                Café  0.05
+2        Dessert Shop  0.05
+3       Deli / Bodega  0.03
+4         Coffee Shop  0.03
+
+
+----CARLYLE COURT----
+                  venue  freq
+0                  Farm   1.0
+1     Accessories Store   0.0
+2  Outdoor Supply Store   0.0
+3           Pastry Shop   0.0
+4               Parking   0.0
+
+
+----CHALCOT SQUARE----
+                venue  freq
+0                Café  0.08
+1                 Pub  0.06
+2  Italian Restaurant  0.06
+3         Coffee Shop  0.06
+4                 Bar  0.06
+
+
+----CHARLES LANE----
+                  venue  freq
+0   American Restaurant   0.5
+1    Photography Studio   0.5
+2     Accessories Store   0.0
+3  Outdoor Supply Store   0.0
+4      Pedestrian Plaza   0.0
+
+
+----CHESTER CLOSE NORTH----
+          venue  freq
+0        Garden  0.12
+1  Cocktail Bar  0.08
+2          Park  0.08
+3          Café  0.08
+4        Buffet  0.04
+
+
+----CHEYNE COURT----
+                  venue  freq
+0                 Hotel  0.08
+1             Bookstore  0.08
+2    Italian Restaurant  0.08
+3      Department Store  0.08
+4  Gym / Fitness Center  0.08
+
+
+----CHEYNE ROW----
+                  venue  freq
+0                  Café  0.08
+1    Italian Restaurant  0.05
+2                   Pub  0.05
+3  Gym / Fitness Center  0.05
+4           Pizza Place  0.03
+
+
+----CHISWICK MALL----
+                  venue  freq
+0                   Pub  0.43
+1               Brewery  0.14
+2  Gym / Fitness Center  0.14
+3            Art Museum  0.14
+4             Gift Shop  0.14
+
+
+----CITY ROAD----
+            venue  freq
+0             Pub  0.25
+1     Art Gallery  0.11
+2     Coffee Shop  0.11
+3  Sandwich Place  0.07
+4       BBQ Joint  0.04
+
+
+----CLARENDON STREET----
+                venue  freq
+0         Pizza Place  0.09
+1  Italian Restaurant  0.06
+2      Cosmetics Shop  0.03
+3  Miscellaneous Shop  0.03
+4       Train Station  0.03
+
+
+----CLONCURRY STREET----
+         venue  freq
+0         Café  0.17
+1         Park  0.10
+2  Coffee Shop  0.07
+3          Bar  0.03
+4       Garden  0.03
+
+
+----COLBECK MEWS----
+         venue  freq
+0        Hotel  0.24
+1          Pub  0.07
+2       Garden  0.05
+3  Coffee Shop  0.04
+4         Café  0.04
+
+
+----COLLEGE CRESCENT----
+                           venue  freq
+0             Italian Restaurant  0.06
+1                   Liquor Store  0.06
+2  Paper / Office Supplies Store  0.06
+3              Health Food Store  0.06
+4                 Shipping Store  0.06
+
+
+----CORNWALL TERRACE MEWS----
+             venue  freq
+0           Garden  0.11
+1             Café  0.11
+2             Park  0.06
+3  Thai Restaurant  0.04
+4              Pub  0.04
+
+
+----COURT LANE GARDENS----
+                venue  freq
+0                 Pub  0.17
+1       Grocery Store  0.17
+2  Italian Restaurant  0.08
+3         Pizza Place  0.08
+4                Café  0.08
+
+
+----CRESCENT GROVE----
+                  venue  freq
+0                 Hotel   1.0
+1     Accessories Store   0.0
+2  Outdoor Supply Store   0.0
+3      Pedestrian Plaza   0.0
+4           Pastry Shop   0.0
+
+
+----DALEBURY ROAD----
+                       venue  freq
+0  Middle Eastern Restaurant  0.14
+1                Gas Station  0.14
+2                       Café  0.14
+3              Grocery Store  0.14
+4                Pizza Place  0.14
+
+
+----DEWHURST ROAD----
+                  venue  freq
+0                   Pub  0.50
+1    Weight Loss Center  0.25
+2         Grocery Store  0.25
+3     Accessories Store  0.00
+4  Outdoor Supply Store  0.00
+
+
+----DORIA ROAD----
+                venue  freq
+0  Italian Restaurant  0.10
+1                Café  0.08
+2              Bakery  0.06
+3         Coffee Shop  0.06
+4                 Pub  0.06
+
+
+----DOWNSHIRE HILL----
+             venue  freq
+0             Café  0.18
+1              Pub  0.12
+2           Museum  0.05
+3  Thai Restaurant  0.05
+4      Coffee Shop  0.05
+
+
+----DUCHESS WALK----
+                venue  freq
+0         Coffee Shop  0.07
+1                 Pub  0.06
+2                 Bar  0.06
+3        Cocktail Bar  0.05
+4  Italian Restaurant  0.04
+
+
+----ECCLESTON SQUARE MEWS----
+                venue  freq
+0               Hotel  0.11
+1                 Pub  0.09
+2         Coffee Shop  0.06
+3      Sandwich Place  0.05
+4  Italian Restaurant  0.05
+
+
+----EGBERT STREET----
+                 venue  freq
+0                  Pub   0.2
+1  American Restaurant   0.2
+2                Trail   0.2
+3                  Gym   0.2
+4              Dog Run   0.2
+
+
+----EGERTON PLACE----
+               venue  freq
+0                Pub  0.14
+1                Bar  0.14
+2  Indian Restaurant  0.14
+3               Café  0.14
+4     Sandwich Place  0.14
+
+
+----ELM PARK ROAD----
+           venue  freq
+0            Pub   0.1
+1    Auto Garage   0.1
+2    Gas Station   0.1
+3    Supermarket   0.1
+4  Grocery Store   0.1
+
+
+----FLORAL STREET----
+                   venue  freq
+0         Cosmetics Shop  0.33
+1          Deli / Bodega  0.33
+2           Home Service  0.33
+3      Accessories Store  0.00
+4  Outdoors & Recreation  0.00
+
+
+----FRANK DIXON WAY----
+                  venue  freq
+0                  Farm  0.17
+1  Gym / Fitness Center  0.17
+2                  Park  0.17
+3            Playground  0.17
+4                  Café  0.17
+
+
+----FULTON MEWS----
+                venue  freq
+0               Hotel  0.16
+1                 Pub  0.08
+2         Coffee Shop  0.07
+3                Café  0.05
+4  Chinese Restaurant  0.05
+
+
+----GERARD ROAD----
+                   venue  freq
+0      Convenience Store  0.33
+1      Indian Restaurant  0.33
+2      Fish & Chips Shop  0.33
+3      Accessories Store  0.00
+4  Outdoors & Recreation  0.00
+
+
+----GERRARD ROAD----
+                   venue  freq
+0                    Pub   0.5
+1   Fast Food Restaurant   0.5
+2  Performing Arts Venue   0.0
+3       Pedestrian Plaza   0.0
+4            Pastry Shop   0.0
+
+
+----GIRDLERS ROAD----
+                venue  freq
+0                 Pub  0.14
+1      Sandwich Place  0.06
+2  Italian Restaurant  0.06
+3           Gastropub  0.06
+4               Hotel  0.06
+
+
+----GORDON PLACE----
+                   venue  freq
+0               Bus Stop   0.5
+1      Mobile Phone Shop   0.5
+2      Accessories Store   0.0
+3  Outdoors & Recreation   0.0
+4       Pedestrian Plaza   0.0
+
+
+----GRAFTON SQUARE----
+          venue  freq
+0           Pub  0.09
+1           Bar  0.05
+2          Café  0.05
+3    Restaurant  0.05
+4  Burger Joint  0.05
+
+
+----GRAHAM TERRACE----
+                  venue  freq
+0     Indian Restaurant   0.5
+1                  Café   0.5
+2     Accessories Store   0.0
+3  Outdoor Supply Store   0.0
+4      Pedestrian Plaza   0.0
+
+
+----HARMAN DRIVE----
+               venue  freq
+0  Indian Restaurant  0.25
+1  Convenience Store  0.25
+2    Photography Lab  0.25
+3              River  0.25
+4  Accessories Store  0.00
+
+
+----HARRIS STREET----
+                   venue  freq
+0          Garden Center   0.5
+1            Auto Garage   0.5
+2      Accessories Store   0.0
+3  Outdoors & Recreation   0.0
+4       Pedestrian Plaza   0.0
+
+
+----HAVANNAH STREET----
+                venue  freq
+0  Italian Restaurant  0.14
+1                 Bar  0.14
+2             Brewery  0.07
+3         Music Venue  0.07
+4         Supermarket  0.07
+
+
+----HAZLEWELL ROAD----
+                  venue  freq
+0   Japanese Restaurant  0.29
+1  Gym / Fitness Center  0.14
+2             Gastropub  0.14
+3                  Café  0.14
+4          Tennis Court  0.14
+
+
+----HEREFORD MEWS----
+                  venue  freq
+0                   Pub  0.08
+1                  Café  0.07
+2  Gym / Fitness Center  0.05
+3    Persian Restaurant  0.04
+4     Indian Restaurant  0.04
+
+
+----HERONDALE AVENUE----
+               venue  freq
+0  French Restaurant   0.4
+1     Clothing Store   0.2
+2       Tennis Court   0.2
+3        Coffee Shop   0.2
+4  Accessories Store   0.0
+
+
+----HIGHGATE HIGH STREET----
+               venue  freq
+0                Pub  0.27
+1             Bakery  0.09
+2  Indian Restaurant  0.05
+3           Tea Room  0.05
+4               Park  0.05
+
+
+----HIGHWOOD HILL----
+                venue  freq
+0  Athletics & Sports   1.0
+1   Accessories Store   0.0
+2        Perfume Shop   0.0
+3    Pedestrian Plaza   0.0
+4         Pastry Shop   0.0
+
+
+----HILLGATE PLACE----
+           venue  freq
+0  Grocery Store  0.13
+1            Pub  0.07
+2    Coffee Shop  0.07
+3    Pizza Place  0.07
+4            Bar  0.07
+
+
+----HOLLYCROFT AVENUE----
+              venue  freq
+0               Pub  0.25
+1               Gym  0.25
+2          Pharmacy  0.25
+3     Grocery Store  0.25
+4  Pedestrian Plaza  0.00
+
+
+----HOLLYWOOD MEWS----
+                  venue  freq
+0                Bakery  0.08
+1  Gym / Fitness Center  0.08
+2    Italian Restaurant  0.08
+3                Garden  0.08
+4             Multiplex  0.04
+
+
+----HONEYWELL ROAD----
+               venue  freq
+0               Café  0.27
+1                Pub  0.20
+2         Playground  0.07
+3  French Restaurant  0.07
+4       Tennis Court  0.07
+
+
+----HORTENSIA ROAD----
+                venue  freq
+0  Italian Restaurant  0.10
+1      Sandwich Place  0.07
+2                 Pub  0.07
+3      Soccer Stadium  0.05
+4           Nightclub  0.05
+
+
+----HOXTON SQUARE----
+          venue  freq
+0   Coffee Shop  0.08
+1         Hotel  0.05
+2   Art Gallery  0.05
+3          Café  0.05
+4  Cocktail Bar  0.05
+
+
+----JACKSONS LANE----
+                 venue  freq
+0                  Pub  0.38
+1  Japanese Restaurant  0.06
+2        Historic Site  0.06
+3   Italian Restaurant  0.06
+4   Seafood Restaurant  0.06
+
+
+----JOHN STREET----
+                 venue  freq
+0  Austrian Restaurant  0.07
+1             Bus Stop  0.07
+2   Chinese Restaurant  0.07
+3          Supermarket  0.07
+4            Pet Store  0.04
+
+
+----KINNERTON STREET----
+              venue  freq
+0             Hotel  0.14
+1              Café  0.08
+2          Boutique  0.08
+3             Plaza  0.05
+4  Department Store  0.03
+
+
+----KNARESBOROUGH PLACE----
+                venue  freq
+0               Hotel  0.28
+1                 Pub  0.07
+2  Italian Restaurant  0.06
+3              Garden  0.04
+4         Coffee Shop  0.04
+
+
+----KNOX STREET----
+              venue  freq
+0      Intersection   0.2
+1       Bridal Shop   0.2
+2  Sushi Restaurant   0.2
+3          Building   0.2
+4       Zoo Exhibit   0.2
+
+
+----LADBROKE GROVE----
+                  venue  freq
+0    Italian Restaurant  0.09
+1  Gym / Fitness Center  0.07
+2           Pizza Place  0.05
+3             Juice Bar  0.05
+4           Record Shop  0.05
+
+
+----LANCASTER MEWS----
+                venue  freq
+0                Café  0.13
+1                 Pub  0.08
+2                 Bar  0.05
+3  Italian Restaurant  0.05
+4         Coffee Shop  0.05
+
+
+----LANSDOWNE ROAD----
+       venue  freq
+0       Café  0.15
+1      Hotel  0.15
+2  Gastropub  0.08
+3        Pub  0.08
+4      River  0.04
+
+
+----LATIMER INDUSTRIAL ESTATE----
+                  venue  freq
+0  Gym / Fitness Center  0.21
+1                  Park  0.14
+2           Music Venue  0.07
+3                   Bar  0.07
+4                   Pub  0.07
+
+
+----LAXTON PLACE----
+               venue  freq
+0                Pub  0.09
+1  Indian Restaurant  0.09
+2        Coffee Shop  0.09
+3               Café  0.04
+4              Plaza  0.04
+
+
+----LINCOLN AVENUE----
+                  venue  freq
+0        Baseball Field   0.4
+1                   Bar   0.2
+2               Brewery   0.2
+3              Pharmacy   0.2
+4  Pakistani Restaurant   0.0
+
+
+----LINGFIELD ROAD----
+           venue  freq
+0  Grocery Store   0.4
+1            Pub   0.2
+2         Bakery   0.2
+3           Park   0.2
+4   Perfume Shop   0.0
+
+
+----LISSON STREET----
+                       venue  freq
+0             Sandwich Place  0.07
+1                Coffee Shop  0.07
+2                        Pub  0.07
+3                       Café  0.05
+4  Middle Eastern Restaurant  0.05
+
+
+----LIVERPOOL GROVE----
+                  venue  freq
+0  Fast Food Restaurant  0.09
+1                  Café  0.09
+2        Discount Store  0.06
+3              Pharmacy  0.06
+4                   Pub  0.06
+
+
+----LONGWOOD DRIVE----
+                       venue  freq
+0         Chinese Restaurant  0.13
+1                   Pharmacy  0.13
+2  Middle Eastern Restaurant  0.07
+3                        Gym  0.07
+4          Recreation Center  0.07
+
+
+----LONSDALE SQUARE----
+                      venue  freq
+0                       Pub  0.08
+1  Mediterranean Restaurant  0.06
+2                    Bakery  0.06
+3         French Restaurant  0.06
+4    Furniture / Home Store  0.05
+
+
+----MIDDLESEX PASSAGE----
+                  venue  freq
+0    Italian Restaurant  0.07
+1                 Plaza  0.06
+2           Coffee Shop  0.06
+3              Wine Bar  0.06
+4  Gym / Fitness Center  0.06
+
+
+----MONTPELIER AVENUE----
+            venue  freq
+0             Pub   0.2
+1  Discount Store   0.2
+2   Grocery Store   0.2
+3     Supermarket   0.2
+4           Hotel   0.2
+
+
+----MONTPELIER WALK----
+                 venue  freq
+0   Italian Restaurant  0.14
+1                 Café  0.11
+2                Hotel  0.07
+3             Boutique  0.04
+4  Japanese Restaurant  0.04
+
+
+----MULTON ROAD----
+                  venue  freq
+0                   Pub   0.5
+1        Breakfast Spot   0.5
+2  Outdoor Supply Store   0.0
+3      Pedestrian Plaza   0.0
+4           Pastry Shop   0.0
+
+
+----MUNDEN STREET----
+               venue  freq
+0               Café  0.15
+1                Pub  0.10
+2              Hotel  0.08
+3  Indian Restaurant  0.08
+4        Coffee Shop  0.04
+
+
+----NORTH CIRCULAR ROAD----
+                       venue  freq
+0                   Bus Stop  0.22
+1               Intersection  0.11
+2              Grocery Store  0.11
+3  Middle Eastern Restaurant  0.11
+4                     Bakery  0.11
+
+
+----NOTTINGHAM STREET----
+                  venue  freq
+0  Gym / Fitness Center   0.2
+1     Convenience Store   0.2
+2              Pharmacy   0.2
+3          Home Service   0.2
+4      Halal Restaurant   0.2
+
+
+----OAKLEY STREET----
+                   venue  freq
+0                 Lounge   0.5
+1           Dance Studio   0.5
+2      Accessories Store   0.0
+3  Outdoors & Recreation   0.0
+4       Pedestrian Plaza   0.0
+
+
+----OAKWOOD COURT----
+         venue  freq
+0  Video Store  0.25
+1  Golf Course  0.25
+2         Food  0.25
+3  Pizza Place  0.25
+4  Pastry Shop  0.00
+
+
+----OBSERVATORY GARDENS----
+            venue  freq
+0            Café  0.08
+1             Pub  0.05
+2  Clothing Store  0.05
+3      Restaurant  0.04
+4       Juice Bar  0.04
+
+
+----OLD COURT PLACE----
+            venue  freq
+0           Hotel  0.10
+1          Garden  0.07
+2  Clothing Store  0.07
+3       Juice Bar  0.05
+4             Pub  0.05
+
+
+----ONSLOW MEWS WEST----
+                venue  freq
+0               Hotel  0.10
+1  Italian Restaurant  0.06
+2              Bakery  0.05
+3      Sandwich Place  0.04
+4              Garden  0.04
+
+
+----PALACE PLACE----
+                  venue  freq
+0            Restaurant   1.0
+1     Accessories Store   0.0
+2  Outdoor Supply Store   0.0
+3      Pedestrian Plaza   0.0
+4           Pastry Shop   0.0
+
+
+----PANTON STREET----
+         venue  freq
+0          Pub  0.12
+1   Restaurant  0.08
+2  Coffee Shop  0.08
+3          Bar  0.08
+4       Bakery  0.08
+
+
+----PARK LANE----
+                  venue  freq
+0    Mexican Restaurant  0.07
+1  Fast Food Restaurant  0.07
+2             Nightclub  0.05
+3           Pizza Place  0.05
+4   American Restaurant  0.03
+
+
+----PARKE ROAD----
+              venue  freq
+0               Pub  0.25
+1              Lake  0.25
+2          Gym Pool  0.25
+3    Breakfast Spot  0.25
+4  Pedestrian Plaza  0.00
+
+
+----PARKFIELDS----
+             venue  freq
+0    Historic Site  0.33
+1  Harbor / Marina  0.17
+2            Diner  0.17
+3      Supermarket  0.17
+4            Hotel  0.17
+
+
+----PARTHENIA ROAD----
+           venue  freq
+0            Pub  0.14
+1    Coffee Shop  0.14
+2  Grocery Store  0.11
+3           Café  0.08
+4           Park  0.06
+
+
+----PAVILION ROAD----
+                   venue  freq
+0          Grocery Store   0.5
+1                   Café   0.5
+2      Accessories Store   0.0
+3  Outdoors & Recreation   0.0
+4       Pedestrian Plaza   0.0
+
+
+----PEMBRIDGE MEWS----
+                venue  freq
+0                 Pub  0.07
+1  Italian Restaurant  0.05
+2          Restaurant  0.04
+3      Clothing Store  0.03
+4  Persian Restaurant  0.03
+
+
+----PEMBRIDGE ROAD----
+                        venue  freq
+0                Soccer Field   0.5
+1  Construction & Landscaping   0.5
+2        Outdoor Supply Store   0.0
+3            Pedestrian Plaza   0.0
+4                 Pastry Shop   0.0
+
+
+----PEMBROKE STUDIOS----
+                venue  freq
+0          Restaurant  0.13
+1                 Pub  0.10
+2  Chinese Restaurant  0.07
+3         Supermarket  0.07
+4          Sports Bar  0.07
+
+
+----PENCOMBE MEWS----
+                venue  freq
+0  Italian Restaurant  0.09
+1                 Pub  0.05
+2              Bakery  0.05
+3                Café  0.04
+4      Clothing Store  0.04
+
+
+----PETERSHAM PLACE----
+                     venue  freq
+0                      Pub  0.50
+1  Health & Beauty Service  0.25
+2                      Bar  0.25
+3              Post Office  0.00
+4             Perfume Shop  0.00
+
+
+----PHILLIMORE GARDENS----
+                venue  freq
+0                Café  0.15
+1      Ice Cream Shop  0.05
+2  Italian Restaurant  0.04
+3         Coffee Shop  0.04
+4     Harbor / Marina  0.04
+
+
+----PHYSIC PLACE----
+         venue  freq
+0          Pub  0.10
+1         Café  0.07
+2       Bakery  0.05
+3  Art Gallery  0.05
+4  Pizza Place  0.05
+
+
+----PITFIELD STREET----
+               venue  freq
+0                Pub  0.31
+1    Warehouse Store  0.08
+2     Sandwich Place  0.08
+3               Bank  0.08
+4  Mobile Phone Shop  0.08
+
+
+----PRINCES GATE----
+               venue  freq
+0          Gift Shop   1.0
+1  Outdoor Sculpture   0.0
+2        Pastry Shop   0.0
+3            Parking   0.0
+4               Park   0.0
+
+
+----PRIORY ROAD----
+                venue  freq
+0                 Pub  0.26
+1          Restaurant  0.13
+2   French Restaurant  0.07
+3         Pizza Place  0.04
+4  Spanish Restaurant  0.02
+
+
+----PROTHERO GARDENS----
+                  venue  freq
+0         Grocery Store  0.18
+1           Coffee Shop  0.12
+2   Fried Chicken Joint  0.06
+3           Pizza Place  0.06
+4  Gym / Fitness Center  0.06
+
+
+----PUTNEY HIGH STREET----
+                venue  freq
+0         Coffee Shop  0.09
+1      Clothing Store  0.05
+2                Café  0.05
+3  Italian Restaurant  0.04
+4                 Bar  0.04
+
+
+----QUARRENDON STREET----
+                venue  freq
+0         Coffee Shop  0.12
+1                 Pub  0.10
+2  Italian Restaurant  0.10
+3       Grocery Store  0.07
+4                Café  0.07
+
+
+----QUEENS GATE TERRACE----
+                  venue  freq
+0  Fast Food Restaurant  0.18
+1    Mexican Restaurant  0.09
+2        Sandwich Place  0.09
+3      Business Service  0.09
+4         Shopping Mall  0.09
+
+
+----RADSTOCK STREET----
+                  venue  freq
+0                   Pub  0.29
+1     French Restaurant  0.14
+2         Grocery Store  0.14
+3   Japanese Restaurant  0.07
+4  Gym / Fitness Center  0.07
+
+
+----RANELAGH AVENUE----
+               venue  freq
+0               Park  0.19
+1                Pub  0.06
+2         Restaurant  0.06
+3          Bookstore  0.06
+4  Food & Drink Shop  0.06
+
+
+----REDCLIFFE ROAD----
+                  venue  freq
+0        Breakfast Spot  0.25
+1           Supermarket  0.12
+2  Gym / Fitness Center  0.12
+3     Convenience Store  0.12
+4  Fast Food Restaurant  0.12
+
+
+----REEVES MEWS----
+               venue  freq
+0              Hotel  0.15
+1               Café  0.06
+2  French Restaurant  0.06
+3          Hotel Bar  0.05
+4           Tea Room  0.05
+
+
+----RHEIDOL MEWS----
+                      venue  freq
+0                       Pub  0.13
+1               Coffee Shop  0.05
+2  Mediterranean Restaurant  0.04
+3         French Restaurant  0.04
+4                    Bakery  0.04
+
+
+----RINGWOOD AVENUE----
+                        venue  freq
+0                  Food Truck  0.33
+1  Construction & Landscaping  0.33
+2          Athletics & Sports  0.33
+3           Accessories Store  0.00
+4       Outdoors & Recreation  0.00
+
+
+----RODERICK ROAD----
+                  venue  freq
+0     Indian Restaurant  0.14
+1     Convenience Store  0.14
+2  Pakistani Restaurant  0.14
+3            Restaurant  0.14
+4      Asian Restaurant  0.14
+
+
+----ROPEMAKERS FIELDS----
+                  venue  freq
+0  Gym / Fitness Center  0.12
+1    Italian Restaurant  0.08
+2                   Pub  0.08
+3     Indian Restaurant  0.08
+4     Convenience Store  0.04
+
+
+----ROYAL CRESCENT----
+                venue  freq
+0      History Museum  0.13
+1                 Pub  0.09
+2               Hotel  0.09
+3          Restaurant  0.09
+4  Italian Restaurant  0.09
+
+
+----RUSSELL GARDENS MEWS----
+                venue  freq
+0               Hotel  0.20
+1                 Pub  0.12
+2  Italian Restaurant  0.08
+3           Gastropub  0.08
+4  Persian Restaurant  0.08
+
+
+----SETTLES STREET----
+                venue  freq
+0           Gift Shop  0.25
+1  Italian Restaurant  0.25
+2      Shipping Store  0.25
+3         Tailor Shop  0.25
+4   Accessories Store  0.00
+
+
+----SHELDON AVENUE----
+                  venue  freq
+0                   Bar  0.16
+1        Sandwich Place  0.08
+2  Fast Food Restaurant  0.05
+3         Burrito Place  0.05
+4           Pizza Place  0.05
+
+
+----SOUTH END ROW----
+                  venue  freq
+0            Restaurant  0.08
+1                 Hotel  0.08
+2        Clothing Store  0.08
+3             Juice Bar  0.06
+4  Gym / Fitness Center  0.04
+
+
+----SOUTHWOOD LAWN ROAD----
+                venue  freq
+0                 Pub  0.31
+1              Bakery  0.06
+2                Café  0.06
+3  Italian Restaurant  0.06
+4   Indian Restaurant  0.06
+
+
+----SOVEREIGN PARK----
+                   venue  freq
+0     Chinese Restaurant  0.33
+1                    Gym  0.33
+2            Pizza Place  0.33
+3  Outdoors & Recreation  0.00
+4       Pedestrian Plaza  0.00
+
+
+----ST OSWALDS PLACE----
+                venue  freq
+0                Café  0.12
+1                 Pub  0.10
+2             Gay Bar  0.07
+3      Cricket Ground  0.05
+4  Italian Restaurant  0.05
+
+
+----ST PETERS SQUARE----
+                venue  freq
+0  Italian Restaurant  0.22
+1      Ice Cream Shop  0.10
+2               Hotel  0.08
+3                Café  0.06
+4     Bed & Breakfast  0.04
+
+
+----STAFFORD TERRACE----
+                  venue  freq
+0           Supermarket  0.50
+1  Fast Food Restaurant  0.17
+2   Rental Car Location  0.17
+3           Pizza Place  0.17
+4     Accessories Store  0.00
+
+
+----SUTHERLAND PLACE----
+                   venue  freq
+0                    Bar  0.33
+1                   Park  0.33
+2                  Hotel  0.33
+3  Outdoors & Recreation  0.00
+4  Performing Arts Venue  0.00
+
+
+----SYDNEY STREET----
+                   venue  freq
+0     Italian Restaurant  0.33
+1            Men's Store  0.33
+2                    Gym  0.33
+3      Accessories Store  0.00
+4  Outdoors & Recreation  0.00
+
+
+----THAMES BANK----
+                  venue  freq
+0          Burger Joint  0.25
+1  Gym / Fitness Center  0.25
+2         Grocery Store  0.25
+3           Pizza Place  0.25
+4     Accessories Store  0.00
+
+
+----THE HEXAGON----
+                venue  freq
+0      Clothing Store  0.11
+1         Coffee Shop  0.08
+2                 Pub  0.08
+3  Italian Restaurant  0.08
+4        Cocktail Bar  0.03
+
+
+----TREDEGAR SQUARE----
+         venue  freq
+0          Pub  0.20
+1     Bus Stop  0.12
+2  Pizza Place  0.12
+3  Coffee Shop  0.08
+4       Hostel  0.04
+
+
+----TRINITY STREET----
+                    venue  freq
+0          Clothing Store  0.12
+1                     Pub  0.06
+2                   Hotel  0.06
+3  Furniture / Home Store  0.06
+4                    Café  0.06
+
+
+----UPPER HAMPSTEAD WALK----
+                venue  freq
+0                 Pub  0.10
+1                Café  0.10
+2              Bakery  0.07
+3      Clothing Store  0.05
+4  Italian Restaurant  0.05
+
+
+----WALPOLE GARDENS----
+               venue  freq
+0                Pub  0.22
+1  Convenience Store  0.22
+2           Bus Stop  0.11
+3    Thai Restaurant  0.11
+4      Train Station  0.11
+
+
+----WALPOLE STREET----
+                  venue  freq
+0              Boutique   1.0
+1     Accessories Store   0.0
+2  Outdoor Supply Store   0.0
+3      Pedestrian Plaza   0.0
+4           Pastry Shop   0.0
+
+
+----WARWICK SQUARE----
+                   venue  freq
+0         Sandwich Place  0.50
+1             Print Shop  0.25
+2                 Bakery  0.25
+3  Outdoors & Recreation  0.00
+4       Pedestrian Plaza  0.00
+
+
+----WELBECK WAY----
+                  venue  freq
+0           Yoga Studio   1.0
+1     Accessories Store   0.0
+2  Outdoor Supply Store   0.0
+3      Pedestrian Plaza   0.0
+4           Pastry Shop   0.0
+
+
+----WELLESLEY TERRACE----
+                       venue  freq
+0              Grocery Store   0.3
+1         Athletics & Sports   0.1
+2                   Pharmacy   0.1
+3          Indian Restaurant   0.1
+4  Middle Eastern Restaurant   0.1
+
+
+----WELLINGTON STREET----
+          venue  freq
+0   Coffee Shop  0.18
+1         Hotel  0.08
+2    Restaurant  0.07
+3    Food Truck  0.03
+4  Concert Hall  0.03
+
+
+----WESTMORELAND PLACE----
+               venue  freq
+0      Deli / Bodega  0.06
+1        Video Store  0.06
+2  French Restaurant  0.06
+3         Food Truck  0.06
+4     Breakfast Spot  0.06
+
+
+----WHITFIELD STREET----
+                  venue  freq
+0                 Hotel  0.17
+1                Hostel  0.06
+2                   Pub  0.04
+3  Fast Food Restaurant  0.04
+4   Japanese Restaurant  0.04
+
+
+----WILFRED STREET----
+                  venue  freq
+0                   Pub  0.19
+1    Italian Restaurant  0.08
+2  Fast Food Restaurant  0.08
+3      Department Store  0.04
+4                Bakery  0.04
+
+
+----WILSON STREET----
+                  venue  freq
+0           Pizza Place   0.6
+1     Convenience Store   0.2
+2            Smoke Shop   0.2
+3     Accessories Store   0.0
+4  Outdoor Supply Store   0.0
+
+
+----WINGATE ROAD----
+               venue  freq
+0  Electronics Store  0.25
+1          Gastropub  0.25
+2    Warehouse Store  0.25
+3        Supermarket  0.25
+4  Accessories Store  0.00
+
+
+In [44]:
+#Define a function to return the most common venues/facilities nearby real estate investments#
+
+def return_most_common_venues(row, num_top_venues):
+    row_categories = row.iloc[1:]
+    row_categories_sorted = row_categories.sort_values(ascending=False)
+    
+    return row_categories_sorted.index.values[0:num_top_venues]
+print('done')
+done
+In [46]:
+num_top_venues = 10
+
+indicators = ['st', 'nd', 'rd']
+
+# create columns according to number of top venues
+columns = ['Street']
+for ind in np.arange(num_top_venues):
+    try:
+        columns.append('{}{} Most Common Venue'.format(ind+1, indicators[ind]))
+    except:
+        columns.append('{}th Most Common Venue'.format(ind+1))
+        
+print('done')
+done
+In [47]:
+venues_sorted = pd.DataFrame(columns=columns)
+venues_sorted['Street'] = london_grouped['Street']
+
+for ind in np.arange(london_grouped.shape[0]):
+    venues_sorted.iloc[ind, 1:] = return_most_common_venues(london_grouped.iloc[ind, :], num_top_venues)
+print('done')
+done
+In [48]:
+venues_sorted.head()
+Out[48]:
+Street	1st Most Common Venue	2nd Most Common Venue	3rd Most Common Venue	4th Most Common Venue	5th Most Common Venue	6th Most Common Venue	7th Most Common Venue	8th Most Common Venue	9th Most Common Venue	10th Most Common Venue
+0	ALBION SQUARE	Café	Coffee Shop	Restaurant	Bar	Indian Restaurant	Pub	Burger Joint	Fish & Chips Shop	Beer Garden	New American Restaurant
+1	ANHALT ROAD	Pub	French Restaurant	Grocery Store	Art Gallery	Gym / Fitness Center	English Restaurant	Cocktail Bar	Garden	Diner	Plaza
+2	ANSDELL TERRACE	Restaurant	Clothing Store	Hotel	Pub	Juice Bar	Indian Restaurant	Bakery	Italian Restaurant	French Restaurant	Burger Joint
+3	APPLEGARTH ROAD	Sandwich Place	Nightclub	Casino	Bar	Zoo Exhibit	Filipino Restaurant	Exhibit	Factory	Falafel Restaurant	Farm
+4	BARONSMEAD ROAD	Indie Movie Theater	Thai Restaurant	Pizza Place	Pub	Restaurant	Coffee Shop	Park	Farmers Market	Café	Nature Preserve
+In [49]:
+venues_sorted.shape
+Out[49]:
+(150, 11)
+In [50]:
+london_grouped.shape
+Out[50]:
+(150, 346)
+In [52]:
+london_grouped=df
+print('done')
+done
+Clustering
+In [53]:
+#Distribute in 5 Clusters
+
+# set number of clusters
+kclusters = 5
+
+london_grouped_clustering = london_grouped.drop('Street', 1)
+
+# run k-means clustering
+kmeans = KMeans(n_clusters=kclusters, random_state=0).fit(london_grouped_clustering)
+
+# check cluster labels generated for each row in the dataframe
+kmeans.labels_[0:50]
+Out[53]:
+array([1, 3, 0, 3, 2, 1, 2, 0, 0, 1, 3, 3, 3, 1, 2, 2, 1, 3, 0, 1, 4, 4,
+       3, 1, 1, 0, 3, 4, 1, 0, 3, 2, 3, 2, 2, 4, 3, 3, 2, 0, 1, 2, 4, 0,
+       4, 0, 0, 4, 0, 0], dtype=int32)
+In [54]:
+#Dataframe to include Clusters
+
+london_grouped_clustering=df
+london_grouped_clustering.head()
+Out[54]:
+Street	Avg_Price	Latitude	Longitude
+196	ALBION SQUARE	2450000.0	-41.273758	173.289393
+390	ANHALT ROAD	2435000.0	51.480316	-0.166801
+405	ANSDELL TERRACE	2250000.0	51.499890	-0.189103
+422	APPLEGARTH ROAD	2400000.0	53.748654	-0.326670
+855	BARONSMEAD ROAD	2375000.0	51.477315	-0.239457
+In [55]:
+london_grouped_clustering.shape
+Out[55]:
+(162, 4)
+In [56]:
+df.shape
+Out[56]:
+(162, 4)
+In [57]:
+london_grouped_clustering.dtypes
+Out[57]:
+Street        object
+Avg_Price    float64
+Latitude     float64
+Longitude    float64
+dtype: object
+In [58]:
+df.dtypes
+Out[58]:
+Street        object
+Avg_Price    float64
+Latitude     float64
+Longitude    float64
+dtype: object
+In [59]:
+# add clustering labels
+london_grouped_clustering['Cluster Labels'] = kmeans.labels_
+
+# merge london_grouped with london_data to add latitude/longitude for each neighborhood
+london_grouped_clustering = london_grouped_clustering.join(venues_sorted.set_index('Street'), on='Street')
+
+london_grouped_clustering.head(30) # check the last columns!
+Out[59]:
+Street	Avg_Price	Latitude	Longitude	Cluster Labels	1st Most Common Venue	2nd Most Common Venue	3rd Most Common Venue	4th Most Common Venue	5th Most Common Venue	6th Most Common Venue	7th Most Common Venue	8th Most Common Venue	9th Most Common Venue	10th Most Common Venue
+196	ALBION SQUARE	2.450000e+06	-41.273758	173.289393	1	Café	Coffee Shop	Restaurant	Bar	Indian Restaurant	Pub	Burger Joint	Fish & Chips Shop	Beer Garden	New American Restaurant
+390	ANHALT ROAD	2.435000e+06	51.480316	-0.166801	3	Pub	French Restaurant	Grocery Store	Art Gallery	Gym / Fitness Center	English Restaurant	Cocktail Bar	Garden	Diner	Plaza
+405	ANSDELL TERRACE	2.250000e+06	51.499890	-0.189103	0	Restaurant	Clothing Store	Hotel	Pub	Juice Bar	Indian Restaurant	Bakery	Italian Restaurant	French Restaurant	Burger Joint
+422	APPLEGARTH ROAD	2.400000e+06	53.748654	-0.326670	3	Sandwich Place	Nightclub	Casino	Bar	Zoo Exhibit	Filipino Restaurant	Exhibit	Factory	Falafel Restaurant	Farm
+855	BARONSMEAD ROAD	2.375000e+06	51.477315	-0.239457	2	Indie Movie Theater	Thai Restaurant	Pizza Place	Pub	Restaurant	Coffee Shop	Park	Farmers Market	Café	Nature Preserve
+981	BEAUCLERC ROAD	2.480000e+06	30.211452	-81.617981	1	Spa	Harbor / Marina	Pizza Place	Automotive Shop	Zoo Exhibit	Filipino Restaurant	Exhibit	Factory	Falafel Restaurant	Farm
+1102	BELVEDERE DRIVE	2.340000e+06	38.072818	-78.458796	2	Playground	Pool	Zoo Exhibit	Fish Market	Exhibit	Factory	Falafel Restaurant	Farm	Farmers Market	Fast Food Restaurant
+1215	BICKENHALL STREET	2.208500e+06	51.521201	-0.158908	0	Café	Restaurant	Hotel	Italian Restaurant	Gastropub	Pizza Place	Movie Theater	Bar	Garden	Greek Restaurant
+1253	BIRCHLANDS AVENUE	2.217000e+06	51.448394	-0.160468	0	Pub	Brewery	Coffee Shop	Chinese Restaurant	Bakery	Train Station	Lake	French Restaurant	Dessert Shop	Fishing Store
+1553	BRAMPTON GROVE	2.456875e+06	51.589961	-0.318525	1	Home Service	Food Service	Fish & Chips Shop	Event Space	Exhibit	Factory	Falafel Restaurant	Farm	Farmers Market	Fast Food Restaurant
+1632	BRIARDALE GARDENS	2.397132e+06	51.560175	-0.195431	3	Sporting Goods Shop	Coffee Shop	Grocery Store	Gym / Fitness Center	Breakfast Spot	Food Service	Filipino Restaurant	Exhibit	Factory	Falafel Restaurant
+1797	BROOKWAY	2.400000e+06	45.432185	-122.802812	3	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN
+1914	BURBAGE ROAD	2.445000e+06	52.538507	-1.353674	3	Bar	Athletics & Sports	Gym	Dance Studio	Grocery Store	Exhibit	Factory	Falafel Restaurant	Farm	Farmers Market
+1980	BURY WALK	2.492500e+06	52.145529	-0.423593	1	Supermarket	English Restaurant	Gym	Pub	American Restaurant	Hardware Store	Rental Car Location	Café	Park	Fast Food Restaurant
+2068	CALLCOTT STREET	2.375000e+06	51.508350	-0.198328	2	Pub	Park	Hotel	Indian Restaurant	Grocery Store	Yoga Studio	Caribbean Restaurant	Gastropub	Thai Restaurant	Tennis Court
+2129	CAMPDEN HILL ROAD	2.379653e+06	51.508111	-0.199667	2	Pub	Grocery Store	Hotel	Yoga Studio	Indian Restaurant	Bakery	Coffee Shop	Park	English Restaurant	Breakfast Spot
+2136	CAMPION ROAD	2.461000e+06	43.623321	-70.236225	1	Pub	Trail	Food	Filipino Restaurant	Event Space	Exhibit	Factory	Falafel Restaurant	Farm	Farmers Market
+2158	CANNING PLACE	2.425000e+06	51.499494	-0.185481	3	Hotel	Italian Restaurant	Restaurant	Juice Bar	Indian Restaurant	French Restaurant	Chinese Restaurant	Pub	Coffee Shop	Mediterranean Restaurant
+2225	CARLISLE ROAD	2.200000e+06	43.399438	-79.973215	0	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN
+2230	CARLTON GARDENS	2.483500e+06	-37.801943	144.971970	1	Italian Restaurant	Café	Dessert Shop	Coffee Shop	Park	Deli / Bodega	Hotel	Lebanese Restaurant	Wine Bar	Ice Cream Shop
+2242	CARLYLE COURT	2.300000e+06	32.972701	-97.173392	4	Farm	Zoo Exhibit	Fish Market	Exhibit	Factory	Falafel Restaurant	Farmers Market	Fast Food Restaurant	Filipino Restaurant	Fish & Chips Shop
+2406	CHALCOT SQUARE	2.286679e+06	51.541088	-0.155928	4	Café	Bar	Pub	Italian Restaurant	Coffee Shop	Convenience Store	Park	French Restaurant	Optical Shop	Music Venue
+2484	CHARLES LANE	2.414000e+06	40.257626	-75.093891	3	American Restaurant	Photography Studio	Zoo Exhibit	Fish Market	Exhibit	Factory	Falafel Restaurant	Farm	Farmers Market	Fast Food Restaurant
+2562	CHELSEA CRESCENT	2.495000e+06	34.522443	-85.443891	1	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN
+2606	CHESTER CLOSE NORTH	2.450000e+06	51.529205	-0.145081	1	Garden	Café	Park	Cocktail Bar	Furniture / Home Store	Beer Bar	Lounge	Mexican Restaurant	Bar	Gym / Fitness Center
+2638	CHEYNE COURT	2.250000e+06	52.035905	0.727612	0	Gym / Fitness Center	Department Store	Grocery Store	Bakery	Supermarket	Pharmacy	Coffee Shop	Café	Bookstore	Hotel
+2641	CHEYNE ROW	2.410000e+06	51.483717	-0.169603	3	Café	Gym / Fitness Center	Pub	Italian Restaurant	Burger Joint	Nightclub	Pizza Place	Plaza	Bakery	Juice Bar
+2686	CHISWICK MALL	2.287500e+06	51.487994	-0.246605	4	Pub	Art Museum	Gift Shop	Gym / Fitness Center	Brewery	Dance Studio	Deli / Bodega	Falafel Restaurant	Farm	Farmers Market
+2761	CITY ROAD	2.468340e+06	51.529697	-0.097763	1	Pub	Art Gallery	Coffee Shop	Sandwich Place	Canal	School	Park	Seafood Restaurant	Gastropub	BBQ Joint
+2808	CLARENDON STREET	2.250000e+06	42.284961	-71.345534	0	Pizza Place	Italian Restaurant	Café	Bank	Brewery	Toy / Game Store	Donut Shop	Park	Gym	Breakfast Spot
+Checking the clusters
+In [60]:
+map_clusters = folium.Map(location=[latitude, longitude], zoom_start=11)
+
+# set color scheme for the clusters
+x = np.arange(kclusters)
+ys = [i+x+(i*x)**2 for i in range(kclusters)]
+colors_array = cm.rainbow(np.linspace(0, 1, len(ys)))
+rainbow = [colors.rgb2hex(i) for i in colors_array]
+
+# add markers to the map
+markers_colors = []
+for lat, lon, poi, cluster in zip(london_grouped_clustering['Latitude'], london_grouped_clustering['Longitude'], london_grouped_clustering['Street'], london_grouped_clustering['Cluster Labels']):
+    label = folium.Popup(str(poi) + ' Cluster ' + str(cluster), parse_html=True)
+    folium.CircleMarker(
+        [lat, lon],
+        radius=5,
+        popup=label,
+        color=rainbow[cluster-1],
+        fill=True,
+        fill_color=rainbow[cluster-1],
+        fill_opacity=0.7).add_to(map_clusters)
+       
+map_clusters
+Out[60]:
+Make this Notebook Trusted to load map: File -> Trust Notebook
+Cluster 1
+In [61]:
+london_grouped_clustering.loc[london_grouped_clustering['Cluster Labels'] == 0, london_grouped_clustering.columns[[1] + list(range(5, london_grouped_clustering.shape[1]))]].head()
+Out[61]:
+Avg_Price	1st Most Common Venue	2nd Most Common Venue	3rd Most Common Venue	4th Most Common Venue	5th Most Common Venue	6th Most Common Venue	7th Most Common Venue	8th Most Common Venue	9th Most Common Venue	10th Most Common Venue
+405	2250000.0	Restaurant	Clothing Store	Hotel	Pub	Juice Bar	Indian Restaurant	Bakery	Italian Restaurant	French Restaurant	Burger Joint
+1215	2208500.0	Café	Restaurant	Hotel	Italian Restaurant	Gastropub	Pizza Place	Movie Theater	Bar	Garden	Greek Restaurant
+1253	2217000.0	Pub	Brewery	Coffee Shop	Chinese Restaurant	Bakery	Train Station	Lake	French Restaurant	Dessert Shop	Fishing Store
+2225	2200000.0	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN
+2638	2250000.0	Gym / Fitness Center	Department Store	Grocery Store	Bakery	Supermarket	Pharmacy	Coffee Shop	Café	Bookstore	Hotel
+Cluster 2
+In [62]:
+london_grouped_clustering.loc[london_grouped_clustering['Cluster Labels'] == 1, london_grouped_clustering.columns[[1] + list(range(5, london_grouped_clustering.shape[1]))]].head()
+Out[62]:
+Avg_Price	1st Most Common Venue	2nd Most Common Venue	3rd Most Common Venue	4th Most Common Venue	5th Most Common Venue	6th Most Common Venue	7th Most Common Venue	8th Most Common Venue	9th Most Common Venue	10th Most Common Venue
+196	2450000.0	Café	Coffee Shop	Restaurant	Bar	Indian Restaurant	Pub	Burger Joint	Fish & Chips Shop	Beer Garden	New American Restaurant
+981	2480000.0	Spa	Harbor / Marina	Pizza Place	Automotive Shop	Zoo Exhibit	Filipino Restaurant	Exhibit	Factory	Falafel Restaurant	Farm
+1553	2456875.0	Home Service	Food Service	Fish & Chips Shop	Event Space	Exhibit	Factory	Falafel Restaurant	Farm	Farmers Market	Fast Food Restaurant
+1980	2492500.0	Supermarket	English Restaurant	Gym	Pub	American Restaurant	Hardware Store	Rental Car Location	Café	Park	Fast Food Restaurant
+2136	2461000.0	Pub	Trail	Food	Filipino Restaurant	Event Space	Exhibit	Factory	Falafel Restaurant	Farm	Farmers Market
+Cluster 3
+In [63]:
+london_grouped_clustering.loc[london_grouped_clustering['Cluster Labels'] == 2, london_grouped_clustering.columns[[1] + list(range(5, london_grouped_clustering.shape[1]))]].head()
+Out[63]:
+Avg_Price	1st Most Common Venue	2nd Most Common Venue	3rd Most Common Venue	4th Most Common Venue	5th Most Common Venue	6th Most Common Venue	7th Most Common Venue	8th Most Common Venue	9th Most Common Venue	10th Most Common Venue
+855	2375000.0	Indie Movie Theater	Thai Restaurant	Pizza Place	Pub	Restaurant	Coffee Shop	Park	Farmers Market	Café	Nature Preserve
+1102	2340000.0	Playground	Pool	Zoo Exhibit	Fish Market	Exhibit	Factory	Falafel Restaurant	Farm	Farmers Market	Fast Food Restaurant
+2068	2375000.0	Pub	Park	Hotel	Indian Restaurant	Grocery Store	Yoga Studio	Caribbean Restaurant	Gastropub	Thai Restaurant	Tennis Court
+2129	2379652.7	Pub	Grocery Store	Hotel	Yoga Studio	Indian Restaurant	Bakery	Coffee Shop	Park	English Restaurant	Breakfast Spot
+2944	2367500.0	Hotel	Pub	Garden	Coffee Shop	Italian Restaurant	Café	Mediterranean Restaurant	Bar	Chinese Restaurant	Residential Building (Apartment / Condo)
+Cluster 4
+In [64]:
+london_grouped_clustering.loc[london_grouped_clustering['Cluster Labels'] == 3, london_grouped_clustering.columns[[1] + list(range(5, london_grouped_clustering.shape[1]))]].head()
+Out[64]:
+Avg_Price	1st Most Common Venue	2nd Most Common Venue	3rd Most Common Venue	4th Most Common Venue	5th Most Common Venue	6th Most Common Venue	7th Most Common Venue	8th Most Common Venue	9th Most Common Venue	10th Most Common Venue
+390	2435000.0	Pub	French Restaurant	Grocery Store	Art Gallery	Gym / Fitness Center	English Restaurant	Cocktail Bar	Garden	Diner	Plaza
+422	2400000.0	Sandwich Place	Nightclub	Casino	Bar	Zoo Exhibit	Filipino Restaurant	Exhibit	Factory	Falafel Restaurant	Farm
+1632	2397132.0	Sporting Goods Shop	Coffee Shop	Grocery Store	Gym / Fitness Center	Breakfast Spot	Food Service	Filipino Restaurant	Exhibit	Factory	Falafel Restaurant
+1797	2400000.0	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN
+1914	2445000.0	Bar	Athletics & Sports	Gym	Dance Studio	Grocery Store	Exhibit	Factory	Falafel Restaurant	Farm	Farmers Market
+Cluster 5
+In [65]:
+london_grouped_clustering.loc[london_grouped_clustering['Cluster Labels'] == 4, london_grouped_clustering.columns[[1] + list(range(5, london_grouped_clustering.shape[1]))]].head()
+Out[65]:
+Avg_Price	1st Most Common Venue	2nd Most Common Venue	3rd Most Common Venue	4th Most Common Venue	5th Most Common Venue	6th Most Common Venue	7th Most Common Venue	8th Most Common Venue	9th Most Common Venue	10th Most Common Venue
+2242	2.300000e+06	Farm	Zoo Exhibit	Fish Market	Exhibit	Factory	Falafel Restaurant	Farmers Market	Fast Food Restaurant	Filipino Restaurant	Fish & Chips Shop
+2406	2.286679e+06	Café	Bar	Pub	Italian Restaurant	Coffee Shop	Convenience Store	Park	French Restaurant	Optical Shop	Music Venue
+2686	2.287500e+06	Pub	Art Museum	Gift Shop	Gym / Fitness Center	Brewery	Dance Studio	Deli / Bodega	Falafel Restaurant	Farm	Farmers Market
+3377	2.298000e+06	Hotel	Zoo Exhibit	Fish & Chips Shop	Event Space	Exhibit	Factory	Falafel Restaurant	Farm	Farmers Market	Fast Food Restaurant
+4285	2.265000e+06	Pub	Gym	American Restaurant	Trail	Dog Run	Filipino Restaurant	Exhibit	Factory	Falafel Restaurant	Farm
