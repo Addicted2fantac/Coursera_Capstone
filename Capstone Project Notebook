@@ -1,0 +1,7 @@
+ This notebook will be mainly used for the capstone project for IBM Data Science Professional Certificate.
+In [0]:
+import pandas as pd
+import numpy as np
+In [2]:
+print("Hello Capstone Project Course!")
+Hello Capstone Project Course!
